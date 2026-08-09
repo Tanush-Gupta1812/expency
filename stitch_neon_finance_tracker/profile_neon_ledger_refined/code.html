@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Neon Ledger - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary": "#313030",
+                      "on-error-container": "#ffdad6",
+                      "on-tertiary-container": "#5f5e5e",
+                      "on-secondary-fixed-variant": "#474646",
+                      "on-primary-fixed-variant": "#004f54",
+                      "surface-dim": "#0d1515",
+                      "error": "#ffb4ab",
+                      "tertiary": "#f8f5f5",
+                      "inverse-surface": "#dce4e5",
+                      "on-error": "#690005",
+                      "inverse-on-surface": "#2a3233",
+                      "on-primary-container": "#006970",
+                      "secondary-fixed": "#e5e2e1",
+                      "on-background": "#dce4e5",
+                      "background": "#0d1515",
+                      "surface": "#0d1515",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "surface-container-lowest": "#080f10",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "on-surface": "#dce4e5",
+                      "on-tertiary-fixed": "#1c1b1b",
+                      "surface-container": "#192122",
+                      "primary-fixed-dim": "#00dbe9",
+                      "surface-container-highest": "#2e3637",
+                      "on-tertiary": "#313030",
+                      "outline": "#849495",
+                      "surface-tint": "#00dbe9",
+                      "secondary": "#c9c6c5",
+                      "surface-bright": "#333b3b",
+                      "primary-fixed": "#7df4ff",
+                      "tertiary-fixed": "#e5e2e1",
+                      "on-secondary-container": "#bab8b7",
+                      "secondary-fixed-dim": "#c9c6c5",
+                      "on-tertiary-fixed-variant": "#474746",
+                      "on-primary": "#00363a",
+                      "surface-container-high": "#232b2c",
+                      "primary-container": "#00f0ff",
+                      "outline-variant": "#3b494b",
+                      "secondary-container": "#4a4949",
+                      "on-surface-variant": "#b9cacb",
+                      "primary": "#dbfcff",
+                      "on-primary-fixed": "#002022",
+                      "inverse-primary": "#006970",
+                      "surface-container-low": "#151d1e",
+                      "tertiary-container": "#dcd9d8",
+                      "error-container": "#93000a",
+                      "surface-variant": "#2e3637"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-padding": "20px",
+                      "grid-gutter": "12px",
+                      "unit": "4px",
+                      "stack-gap": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Space Grotesk"
+                      ],
+                      "display-lg": [
+                              "Space Grotesk"
+                      ],
+                      "body-sm": [
+                              "Space Grotesk"
+                      ],
+                      "label-caps": [
+                              "Space Grotesk"
+                      ],
+                      "headline-md": [
+                              "Space Grotesk"
+                      ],
+                      "headline-md-mobile": [
+                              "Space Grotesk"
+                      ],
+                      "headline-sm": [
+                              "Space Grotesk"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.15em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md-mobile": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #dce4e5;
+            background-image: radial-gradient(circle at 50% 0%, rgba(0, 219, 233, 0.15) 0%, rgba(0, 0, 0, 0) 50%),
+                              linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+            background-position: center top, center center, center center;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-card {
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 219, 233, 0.2);
+        }
+
+        .glass-card-interactive:hover {
+            border-color: rgba(0, 219, 233, 1);
+            box-shadow: 0 0 15px rgba(0, 219, 233, 0.3);
+        }
+        
+        /* Cyan Gradient Card */
+        .cyan-gradient-card {
+             background: linear-gradient(135deg, rgba(0, 219, 233, 0.15) 0%, rgba(26, 26, 26, 0.8) 100%);
+             backdrop-filter: blur(20px);
+             border: 1px solid rgba(0, 219, 233, 0.2);
+        }
+
+        /* Avatar Glow */
+        .avatar-glow {
+            box-shadow: 0 0 30px rgba(0, 219, 233, 0.6);
+            border: 2px solid #00dbe9;
+        }
+
+        /* Neon Text */
+        .text-neon {
+            color: #00dbe9;
+            text-shadow: 0 0 8px rgba(0, 219, 233, 0.5);
+        }
+        
+        /* Slider Customization */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00dbe9;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 219, 233, 0.8);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #3b494b;
+            border-radius: 2px;
+        }
+        
+        /* Custom Checkbox */
+        input[type="checkbox"] {
+            appearance: none;
+            background-color: transparent;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1px solid #00dbe9;
+            border-radius: 0.15em;
+            display: grid;
+            place-content: center;
+        }
+        
+        input[type="checkbox"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #00dbe9;
+            background-color: #00dbe9;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        input[type="checkbox"]:checked::before {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="font-body-lg text-body-lg pb-[88px] pt-[80px]">
+<!-- Top App Bar -->
+<header class="bg-surface/80 dark:bg-background/80 backdrop-blur-xl border-b border-primary/20 shadow-[0_4px_15px_-3px_rgba(0,219,233,0.3)] fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-padding h-16 transition-all duration-300 ease-in-out active:scale-95">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<h1 class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary-fixed-dim tracking-widest uppercase">FINANCE_CORE</h1>
+</div>
+<button class="hover:text-primary-fixed hover:drop-shadow-[0_0_8px_rgba(0,219,233,0.8)] text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="max-w-md mx-auto px-container-padding flex flex-col gap-stack-gap">
+<!-- User Header -->
+<section class="flex flex-col items-center pt-8 pb-4">
+<div class="relative mb-4">
+<img class="w-24 h-24 rounded-full object-cover avatar-glow" data-alt="A highly detailed close-up of a futuristic cyberpunk character wearing a sleek, glowing VR visor in a dark, atmospheric setting. The visor emits an intense, luminous cyan light that reflects subtly on their high-tech tactical collar. The mood is intense, secretive, and deeply entrenched in a 'High-Tech, Low-Life' aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArtpxUstVjID6yqicS8ZghOSLHzOrk936MZ01W_c65xEhYxZyMb9vhV8QXglgNzIOJ9byzS2akDMXkmJPA5UvVTOj3Ofg0YfofR-KfHpd1nyKraymwo5Pf7ZAusbejAWbHp16HYqgfrH3F5_gy4UUf81MzDn40zDsW5ELDnEqAmHMrAkINXTARao8wl91nxR1zcuSBNXNuiNhjvIclvGxD6Xx19cTxpm4fAbNpnjsCj7B6jwoAycRweQ"/>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#1A1A1A] border border-primary/40 px-3 py-1 rounded-full flex items-center gap-2 whitespace-nowrap shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+<div class="w-2 h-2 rounded-full bg-[#00FF00] shadow-[0_0_5px_#00FF00]"></div>
+<span class="font-label-caps text-label-caps text-tertiary-fixed-dim uppercase">Local Only</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 tracking-wider">ID: 0x9A4F...B2C1</p>
+</section>
+<!-- Storage Sync Section -->
+<section class="cyan-gradient-card rounded-xl p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary-fixed-dim">cloud_sync</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Storage Sync</h2>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Backup Button -->
+<button class="w-full bg-[#111] hover:bg-[#1A1A1A] border border-[#333] hover:border-primary/50 rounded-lg p-4 flex items-center justify-between transition-all group glass-card-interactive">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary-fixed-dim transition-colors">code</span>
+<span class="font-body-lg text-body-lg text-on-surface">Backup Data (JSON)</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+<!-- Export Button -->
+<button class="w-full bg-[#111] hover:bg-[#1A1A1A] border border-[#333] hover:border-primary/50 rounded-lg p-4 flex items-center justify-between transition-all group glass-card-interactive">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary-fixed-dim transition-colors">description</span>
+<span class="font-body-lg text-body-lg text-on-surface">Export to CSV</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+<!-- Restore Button -->
+<button class="w-full bg-[#111] hover:bg-[#1A1A1A] border border-[#333] hover:border-primary/50 rounded-lg p-4 flex items-center justify-between transition-all group glass-card-interactive">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary-fixed-dim transition-colors">history</span>
+<span class="font-body-lg text-body-lg text-on-surface">Restore Local Backup</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Preferences Section -->
+<section class="cyan-gradient-card rounded-xl p-4 flex flex-col gap-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed-dim">tune</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Preferences</h2>
+</div>
+<div class="flex flex-col gap-6">
+<!-- Currency Setup -->
+<div class="flex items-center justify-between border-b border-[#333] pb-4">
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface">Currency Symbol</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-mono">Default: ¤</span>
+</div>
+<button class="px-4 py-2 bg-transparent border border-primary-fixed-dim text-primary-fixed-dim rounded font-label-caps text-label-caps hover:bg-primary-fixed-dim/10 transition-colors shadow-[0_0_10px_rgba(0,219,233,0.2)] uppercase">Edit</button>
+</div>
+<!-- Biometrics -->
+<div class="flex items-center justify-between border-b border-[#333] pb-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">fingerprint</span>
+<span class="font-body-lg text-body-lg text-on-surface">Biometric Lock</span>
+</div>
+<input checked="" class="cursor-pointer" type="checkbox"/>
+</div>
+<!-- Glow Intensity Slider -->
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">light_mode</span>
+<span class="font-body-lg text-body-lg text-on-surface">Neon Glow Intensity</span>
+</div>
+<span class="font-label-caps text-label-caps text-primary-fixed-dim uppercase">High</span>
+</div>
+<input class="w-full mt-2" max="100" min="1" type="range" value="80"/>
+</div>
+</div>
+</section>
+<!-- System Info Section -->
+<section class="cyan-gradient-card rounded-xl p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary-fixed-dim">info</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">System Info</h2>
+</div>
+<div class="flex flex-col gap-4">
+<a class="flex justify-between items-center group" href="#">
+<span class="font-body-lg text-body-lg text-on-surface-variant group-hover:text-primary-fixed-dim transition-colors">Privacy Policy</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">open_in_new</span>
+</a>
+<div class="flex justify-between items-center">
+<span class="font-body-lg text-body-lg text-on-surface-variant">About App</span>
+<span class="font-body-sm text-body-sm text-[#5f5e5e] font-mono">v2.4.1</span>
+</div>
+</div>
+<!-- Destructive Action -->
+<button class="mt-4 w-full bg-transparent border border-error/50 hover:bg-error/10 text-error rounded-lg py-3 flex items-center justify-center gap-2 transition-all font-label-caps text-label-caps uppercase tracking-widest shadow-[0_0_10px_rgba(255,180,171,0.1)] hover:shadow-[0_0_15px_rgba(255,180,171,0.3)] hover:border-error">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+                Clear All Local Data
+            </button>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="bg-surface/80 dark:bg-background/80 backdrop-blur-xl border-t border-primary/30 fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 pb-safe transition-transform duration-200 ease-out active:scale-90 hidden md:hidden flex">
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-fixed-dim/80 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">home</span>
+<span class="font-label-caps text-label-caps uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-fixed-dim/80 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">history</span>
+<span class="font-label-caps text-label-caps uppercase">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.9)] scale-110 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-caps text-label-caps uppercase">Profile</span>
+</a>
+</nav>
+<!-- Desktop Nav Placeholder (Hidden on Mobile) -->
+<nav class="hidden md:flex bg-surface/80 dark:bg-background/80 backdrop-blur-xl border-t border-primary/30 fixed bottom-0 left-0 w-full z-50 justify-around items-center px-4 py-3 pb-safe transition-transform duration-200 ease-out active:scale-90">
+<!-- Render same as mobile but visible on md breakpoint for structural consistency if needed, though instruction says use TopAppBar cluster on web. Standardizing per JSON component. -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-fixed-dim/80 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">home</span>
+<span class="font-label-caps text-label-caps uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-fixed-dim/80 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">history</span>
+<span class="font-label-caps text-label-caps uppercase">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary-fixed-dim drop-shadow-[0_0_10px_rgba(0,219,233,0.9)] scale-110 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-caps text-label-caps uppercase">Profile</span>
+</a>
+</nav>
+</body></html>

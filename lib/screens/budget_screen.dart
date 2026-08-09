@@ -99,7 +99,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           const SizedBox(height: 20),
           _BudgetCard(
             title: 'Overall budget',
-            subtitle: overall > 0 ? 'Spent ₹${spent.toStringAsFixed(2)} of ₹${overall.toStringAsFixed(2)}' : 'No overall limit set',
+            subtitle: overall > 0 ? 'Spent $currencySymbol${spent.toStringAsFixed(2)} of $currencySymbol${overall.toStringAsFixed(2)}' : 'No overall limit set',
             icon: Icons.account_balance_wallet_rounded,
             color: kPrimary,
             controller: _overallController,
@@ -114,7 +114,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               padding: const EdgeInsets.only(bottom: 12),
               child: _BudgetCard(
                 title: category.label,
-                subtitle: limit > 0 ? 'Spent ₹${spentInCategory.toStringAsFixed(2)} of ₹${limit.toStringAsFixed(2)}' : 'No limit set',
+                subtitle: limit > 0 ? 'Spent $currencySymbol${spentInCategory.toStringAsFixed(2)} of $currencySymbol${limit.toStringAsFixed(2)}' : 'No limit set',
                 icon: category.icon,
                 color: category.color,
                 controller: _controllers[category]!,
@@ -182,7 +182,7 @@ class _BudgetCard extends StatelessWidget {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
               style: GoogleFonts.spaceGrotesk(color: kOnSurface, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(prefixText: '₹', hintText: '0'),
+              decoration: InputDecoration(prefixText: currencySymbol, hintText: '0'),
             ),
           ),
         ],

@@ -205,7 +205,6 @@ class _HistoryAppBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(Icons.account_balance_wallet_rounded, color: kPrimary),
               const Spacer(),
               Text(
                 'FINANCE_CORE',
@@ -217,7 +216,6 @@ class _HistoryAppBar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.notifications_outlined, color: kPrimary),
             ],
           ),
         ),
@@ -283,7 +281,7 @@ class _FilterChip extends StatelessWidget {
             color: selected ? kPrimary : Colors.transparent,
           ),
           boxShadow: selected
-              ? [BoxShadow(color: kPrimary.withValues(alpha: 0.45), blurRadius: 14)]
+              ? [BoxShadow(color: glowColor(kPrimary, 0.45), blurRadius: 14)]
               : null,
         ),
         child: Text(
@@ -318,7 +316,7 @@ class _BreakdownCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [kPrimary.withValues(alpha: 0.08), Colors.transparent],
+                colors: [glowColor(kPrimary, 0.08), Colors.transparent],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -334,13 +332,13 @@ class _BreakdownCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '-₹${totalOut.toStringAsFixed(2)}',
+            '-$currencySymbol${totalOut.toStringAsFixed(2)}',
             style: GoogleFonts.spaceGrotesk(
               color: Colors.white,
               fontSize: 36,
               fontWeight: FontWeight.w700,
               letterSpacing: -1,
-              shadows: [Shadow(color: kPrimary.withValues(alpha: 0.4), blurRadius: 12)],
+              shadows: [Shadow(color: glowColor(kPrimary, 0.4), blurRadius: 12)],
             ),
           ),
           const SizedBox(height: 24),
@@ -459,7 +457,7 @@ class _LegendRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.8), blurRadius: 8)],
+              boxShadow: [BoxShadow(color: glowColor(color, 0.8), blurRadius: 8)],
             ),
           ),
           const SizedBox(width: 12),
@@ -475,7 +473,7 @@ class _LegendRow extends StatelessWidget {
               color: color,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              shadows: [Shadow(color: color.withValues(alpha: 0.6), blurRadius: 6)],
+              shadows: [Shadow(color: glowColor(color, 0.6), blurRadius: 6)],
             ),
           ),
         ],

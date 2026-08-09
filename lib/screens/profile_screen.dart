@@ -13,7 +13,22 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _biometricLock = true;
-  double _glowIntensity = 0.8;
+
+  @override
+  void initState() {
+    super.initState();
+    TransactionRepository.addListener(_onRepositoryChanged);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +46,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 280,
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  colors: [kPrimary.withValues(alpha: 0.14), Colors.transparent],
+                  colors: [
+                    kPrimary.withValues(
+                      alpha: ThemeManager.neonGlowEnabled ? 0.14 : 0,
+                    ),
+                    Colors.transparent,
+                  ],
                   radius: 0.9,
                 ),
               ),
@@ -106,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             color: kOnSurface, fontSize: 15),
                                       ),
                                       Text(
-                                        'Default: Â¤',
+                                        'Selected: ${selectedCurrency.name} ($currencySymbol)',
                                         style: GoogleFonts.spaceGrotesk(
                                           color: kOnSurfaceVariant,
                                           fontSize: 12,
@@ -117,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 _GhostButton(
                                   label: 'EDIT',
-                                  onTap: () => _showSnack('Currency picker coming soon'),
+                                  onTap: _showCurrencyPicker,
                                 ),
                               ],
                             ),
@@ -149,54 +169,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           _Divider(),
 
-                          // Glow slider
+                          // Neon glow
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Column(
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.light_mode_rounded,
-                                        color: kOnSurfaceVariant, size: 22),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'Neon Glow Intensity',
-                                        style: GoogleFonts.spaceGrotesk(
-                                            color: kOnSurface, fontSize: 15),
-                                      ),
-                                    ),
-                                    Text(
-                                      _glowIntensity > 0.65
-                                          ? 'HIGH'
-                                          : _glowIntensity > 0.35
-                                              ? 'MEDIUM'
-                                              : 'LOW',
-                                      style: GoogleFonts.spaceGrotesk(
-                                        color: kPrimary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                  ],
+                                Icon(
+                                  Icons.auto_awesome_rounded,
+                                  color: kOnSurfaceVariant,
+                                  size: 22,
                                 ),
-                                const SizedBox(height: 10),
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: kPrimary,
-                                    inactiveTrackColor: kOutline,
-                                    thumbColor: kPrimary,
-                                    overlayColor: kPrimary.withValues(alpha: 0.12),
-                                    thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 8),
-                                    trackHeight: 4,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Neon Glow',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      color: kOnSurface,
+                                      fontSize: 15,
+                                    ),
                                   ),
-                                  child: Slider(
-                                    value: _glowIntensity,
-                                    onChanged: (v) =>
-                                        setState(() => _glowIntensity = v),
-                                  ),
+                                ),
+                                _NeonSwitch(
+                                  value: ThemeManager.neonGlowEnabled,
+                                  onChanged: (value) async {
+                                    await TransactionRepository
+                                        .updateNeonGlowEnabled(value);
+                                    if (mounted) setState(() {});
+                                  },
                                 ),
                               ],
                             ),
@@ -266,12 +265,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSnack(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: GoogleFonts.spaceGrotesk()),
         backgroundColor: kSurface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _showCurrencyPicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.75,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SELECT CURRENCY',
+                style: GoogleFonts.spaceGrotesk(
+                  color: kPrimary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  children: currencyOptions
+                      .map(
+                        (currency) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            '${currency.name} (${currency.code})',
+                            style: GoogleFonts.spaceGrotesk(color: kOnSurface),
+                          ),
+                          leading: Text(
+                            currency.symbol,
+                            style: GoogleFonts.spaceGrotesk(
+                              color: kPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          trailing: Radio<String>(
+                            value: currency.code,
+                            groupValue: TransactionRepository.currencyCode,
+                            activeColor: kPrimary,
+                            onChanged: (_) async {
+                              await TransactionRepository.updateCurrencyCode(currency.code);
+                              if (!mounted) return;
+                              setState(() {});
+                              if (sheetContext.mounted) Navigator.pop(sheetContext);
+                            },
+                          ),
+                          onTap: () async {
+                            await TransactionRepository.updateCurrencyCode(currency.code);
+                            if (!mounted) return;
+                            setState(() {});
+                            if (sheetContext.mounted) Navigator.pop(sheetContext);
+                          },
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       ),
     );
   }
@@ -307,7 +379,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               Navigator.pop(dialogCtx);
               await TransactionRepository.clearAllData();
-              _showSnack('Data cleared');
+              if (!mounted) return;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _showSnack('Data cleared');
+              });
             },
             child: Text('CLEAR',
                 style: GoogleFonts.spaceGrotesk(
@@ -324,14 +400,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF1A1A1A);
-    for (double x = 0; x < size.width; x += 20) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height),
-          paint..strokeWidth = 0.5);
-    }
-    for (double y = 0; y < size.height; y += 20) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y),
-          paint..strokeWidth = 0.5);
+    final paint = Paint()..color = const Color(0xFF222222);
+    const spacing = 20.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1, paint);
+      }
     }
   }
 
@@ -354,8 +428,7 @@ class _ProfileAppBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(Icons.account_balance_wallet_rounded, color: kPrimary),
-              const SizedBox(width: 10),
+              const Spacer(),
               Text(
                 'FINANCE_CORE',
                 style: GoogleFonts.spaceGrotesk(
@@ -366,7 +439,6 @@ class _ProfileAppBar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.notifications_outlined, color: kOnSurfaceVariant),
             ],
           ),
         ),
@@ -391,7 +463,7 @@ class _AvatarSection extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: kPrimary.withValues(alpha: 0.5), blurRadius: 24),
+                  BoxShadow(color: glowColor(kPrimary, 0.5), blurRadius: 24),
                 ],
                 border: Border.all(color: kPrimary, width: 2),
               ),
@@ -421,7 +493,7 @@ class _AvatarSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: kIncome,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: kIncome, blurRadius: 5)],
+                  boxShadow: [BoxShadow(color: glowColor(kIncome, 1), blurRadius: 5)],
                 ),
               ),
               const SizedBox(width: 8),
@@ -559,7 +631,7 @@ class _GhostButton extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: kPrimary),
           borderRadius: BorderRadius.circular(6),
-          boxShadow: [BoxShadow(color: kPrimary.withValues(alpha: 0.15), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: glowColor(kPrimary, 0.15), blurRadius: 10)],
         ),
         child: Text(
           label,
@@ -607,7 +679,7 @@ class _ClearDataButton extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: kError.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: kError.withValues(alpha: 0.08), blurRadius: 12)],
+          boxShadow: [BoxShadow(color: glowColor(kError, 0.08), blurRadius: 12)],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -4,8 +4,9 @@ import '../theme/app_theme.dart';
 import '../models/transaction.dart';
 
 class TransactionListItem extends StatelessWidget {
-  const TransactionListItem({super.key, required this.transaction});
+  const TransactionListItem({super.key, required this.transaction, this.onTap});
   final Transaction transaction;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class TransactionListItem extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -36,7 +37,7 @@ class TransactionListItem extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: color.withValues(alpha: 0.5)),
                     boxShadow: [
-                      BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 10),
+                      BoxShadow(color: glowColor(color, 0.25), blurRadius: 10),
                     ],
                   ),
                   child: Icon(t.category.icon, color: color, size: 20),
@@ -96,13 +97,13 @@ class TransactionListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${t.isIncome ? '+' : '-'}₹${t.amount.toStringAsFixed(2)}',
+                      '${t.isIncome ? '+' : '-'}$currencySymbol${t.amount.toStringAsFixed(2)}',
                       style: GoogleFonts.spaceGrotesk(
                         color: t.isIncome ? kIncome : kOnSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         shadows: t.isIncome
-                            ? [Shadow(color: kIncome.withValues(alpha: 0.5), blurRadius: 8)]
+                            ? [Shadow(color: glowColor(kIncome, 0.5), blurRadius: 8)]
                             : null,
                       ),
                     ),

@@ -30,9 +30,41 @@ class ExpencyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Expency',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      home: const MainShell(),
+      theme: ThemeData.dark(),
+      home: const _ThemeHost(child: MainShell()),
     );
+  }
+}
+
+class _ThemeHost extends StatefulWidget {
+  const _ThemeHost({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ThemeHost> createState() => _ThemeHostState();
+}
+
+class _ThemeHostState extends State<_ThemeHost> {
+  @override
+  void initState() {
+    super.initState();
+    TransactionRepository.addListener(_refreshTheme);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.removeListener(_refreshTheme);
+    super.dispose();
+  }
+
+  void _refreshTheme() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(data: buildAppTheme(), child: widget.child);
   }
 }
 
@@ -51,6 +83,22 @@ class _MainShellState extends State<MainShell> {
     HistoryScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    TransactionRepository.addListener(_onRepositoryChanged);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
 
   void _onTap(int index) {
     HapticFeedback.selectionClick();
@@ -101,7 +149,7 @@ class _NeonBottomNav extends StatelessWidget {
               top: BorderSide(color: kPrimary.withValues(alpha: 0.3), width: 1),
             ),
             boxShadow: [
-              BoxShadow(color: kPrimary.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -4)),
+              BoxShadow(color: glowColor(kPrimary, 0.1), blurRadius: 20, offset: const Offset(0, -4)),
             ],
           ),
           child: SafeArea(
@@ -131,7 +179,7 @@ class _NeonBottomNav extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(10),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: kPrimary.withValues(alpha: 0.5),
+                                          color: glowColor(kPrimary, 0.5),
                                           blurRadius: 14,
                                           spreadRadius: 1,
                                         ),

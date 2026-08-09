@@ -4,6 +4,7 @@ import '../models/transaction_repository.dart';
 
 // ─── Theme Manager ──────────────────────────────────────────────────────────
 class ThemeManager {
+  static bool get neonGlowEnabled => TransactionRepository.neonGlowEnabled;
   static Color get primaryColor {
     final overall = TransactionRepository.overallBudget;
     if (overall <= 0) return const Color(0xFF00DBE9); // default neon cyan
@@ -13,14 +14,47 @@ class ThemeManager {
         .fold(0.0, (sum, t) => sum + t.amount);
 
     final ratio = totalExpense / overall;
-    if (ratio >= 1.0) {
-      return const Color(0xFFFF3B30); // Neon Red
-    } else if (ratio >= 0.8) {
-      return const Color(0xFFFFCC00); // Neon Yellow
+    if (ratio > 1.0) {
+      return const Color(0xFFFF3B30); // Neon Red: over budget
+    } else if (ratio >= 0.9) {
+      return const Color(0xFFFF9500); // Neon Orange: critical
+    } else if (ratio >= 0.75) {
+      return const Color(0xFFFFCC00); // Neon Yellow: warning
     }
     return const Color(0xFF00DBE9); // Neon Cyan
   }
 }
+
+Color glowColor(Color color, double alpha) =>
+    color.withValues(alpha: ThemeManager.neonGlowEnabled ? alpha : 0);
+
+class CurrencyOption {
+  const CurrencyOption(this.code, this.name, this.symbol);
+
+  final String code;
+  final String name;
+  final String symbol;
+}
+
+const currencyOptions = [
+  CurrencyOption('INR', 'Indian Rupee', '\u{20B9}'),
+  CurrencyOption('USD', 'US Dollar', r'$'),
+  CurrencyOption('EUR', 'Euro', '\u{20AC}'),
+  CurrencyOption('GBP', 'British Pound', '\u{00A3}'),
+  CurrencyOption('JPY', 'Japanese Yen', '\u{00A5}'),
+  CurrencyOption('CNY', 'Chinese Yuan', '\u{00A5}'),
+  CurrencyOption('AED', 'UAE Dirham', 'AED'),
+  CurrencyOption('CAD', 'Canadian Dollar', r'CA$'),
+  CurrencyOption('AUD', 'Australian Dollar', r'A$'),
+  CurrencyOption('SGD', 'Singapore Dollar', r'S$'),
+];
+
+CurrencyOption get selectedCurrency => currencyOptions.firstWhere(
+      (option) => option.code == TransactionRepository.currencyCode,
+      orElse: () => currencyOptions.first,
+    );
+
+String get currencySymbol => selectedCurrency.symbol;
 
 // ─── Dynamic Palette ──────────────────────────────────────────────────────────
 Color get kPrimary => ThemeManager.primaryColor;
@@ -28,6 +62,7 @@ Color get kPrimary => ThemeManager.primaryColor;
 Color get kPrimaryBright {
   final p = kPrimary;
   if (p == const Color(0xFFFF3B30)) return const Color(0xFFFF7B72); // lighter red
+  if (p == const Color(0xFFFF9500)) return const Color(0xFFFFB347); // lighter orange
   if (p == const Color(0xFFFFCC00)) return const Color(0xFFFFE066); // lighter yellow
   return const Color(0xFF7DF4FF); // lighter cyan
 }
@@ -46,8 +81,8 @@ const kError = Color(0xFFFFB4AB);
 const kCardBg = Color(0x801A1A1A);        // 50% alpha for glass cards
 
 // ─── Glow helpers ───────────────────────────────────────────────────────────
-BoxDecoration glassCard({bool active = false, Color? glowColor}) {
-  final glow = glowColor ?? kPrimary;
+BoxDecoration glassCard({bool active = false, Color? glowTint}) {
+  final glow = glowTint ?? kPrimary;
   return BoxDecoration(
     color: kCardBg,
     borderRadius: BorderRadius.circular(16),
@@ -57,7 +92,7 @@ BoxDecoration glassCard({bool active = false, Color? glowColor}) {
     ),
     boxShadow: [
       BoxShadow(
-        color: glow.withValues(alpha: active ? 0.4 : 0.15),
+        color: glowColor(glow, active ? 0.4 : 0.15),
         blurRadius: active ? 20 : 12,
         spreadRadius: 0,
       ),
@@ -71,7 +106,7 @@ BoxDecoration neonBorderDecoration({Color? color, double radius = 12}) {
     color: c.withValues(alpha: 0.08),
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: c.withValues(alpha: 0.5), width: 1),
-    boxShadow: [BoxShadow(color: c.withValues(alpha: 0.25), blurRadius: 10)],
+    boxShadow: [BoxShadow(color: glowColor(c, 0.25), blurRadius: 10)],
   );
 }
 

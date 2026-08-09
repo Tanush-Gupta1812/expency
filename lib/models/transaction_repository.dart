@@ -10,10 +10,14 @@ class TransactionRepository {
 
   static double _overallBudget = 0.0;
   static final Map<TransactionCategory, double> _categoryBudgets = {};
+  static bool _neonGlowEnabled = true;
+  static String _currencyCode = 'INR';
 
   static List<Transaction> get transactions => List.unmodifiable(_transactions);
   static double get overallBudget => _overallBudget;
   static Map<TransactionCategory, double> get categoryBudgets => Map.unmodifiable(_categoryBudgets);
+  static bool get neonGlowEnabled => _neonGlowEnabled;
+  static String get currencyCode => _currencyCode;
 
   static void addListener(VoidCallback listener) {
     if (!_listeners.contains(listener)) {
@@ -72,6 +76,8 @@ class TransactionRepository {
           });
         }
       }
+      _neonGlowEnabled = prefs.getBool('neon_glow_enabled') ?? true;
+      _currencyCode = prefs.getString('currency_code') ?? 'INR';
       _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing TransactionRepository: $e');
@@ -80,6 +86,20 @@ class TransactionRepository {
 
   static Future<void> addTransaction(Transaction t) async {
     _transactions.add(t);
+    _notifyListeners();
+    await _save();
+  }
+
+  static Future<void> updateTransaction(Transaction transaction) async {
+    final index = _transactions.indexWhere((item) => item.id == transaction.id);
+    if (index == -1) return;
+    _transactions[index] = transaction;
+    _notifyListeners();
+    await _save();
+  }
+
+  static Future<void> deleteTransaction(String id) async {
+    _transactions.removeWhere((transaction) => transaction.id == id);
     _notifyListeners();
     await _save();
   }
@@ -120,6 +140,28 @@ class TransactionRepository {
       await prefs.setString('category_budgets', jsonEncode(temp));
     } catch (e) {
       debugPrint('Error saving category budgets: $e');
+    }
+  }
+
+  static Future<void> updateNeonGlowEnabled(bool value) async {
+    _neonGlowEnabled = value;
+    _notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('neon_glow_enabled', value);
+    } catch (e) {
+      debugPrint('Error saving neon glow setting: $e');
+    }
+  }
+
+  static Future<void> updateCurrencyCode(String value) async {
+    _currencyCode = value;
+    _notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('currency_code', value);
+    } catch (e) {
+      debugPrint('Error saving currency setting: $e');
     }
   }
 

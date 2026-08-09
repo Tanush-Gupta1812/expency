@@ -19,11 +19,16 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<double> _balanceFade;
 
   List<Transaction> _transactions = [];
+  String? _expandedTransactionId;
 
   void _onRepositoryChanged() {
     if (mounted) {
       setState(() {
         _transactions = List.from(TransactionRepository.transactions);
+        if (_expandedTransactionId != null &&
+            !_transactions.any((t) => t.id == _expandedTransactionId)) {
+          _expandedTransactionId = null;
+        }
       });
     }
   }
@@ -74,6 +79,76 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  void _openTransactionActions(Transaction transaction) {
+    setState(() {
+      _expandedTransactionId = _expandedTransactionId == transaction.id ? null : transaction.id;
+    });
+  }
+
+  void _closeTransactionActions() {
+    if (_expandedTransactionId != null) {
+      setState(() => _expandedTransactionId = null);
+    }
+  }
+
+  void _editTransaction(Transaction transaction) {
+    _closeTransactionActions();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddTransactionSheet(
+        initialTransaction: transaction,
+        onAdd: (_) {},
+        onUpdate: (updated) => TransactionRepository.updateTransaction(updated),
+      ),
+    );
+  }
+
+  void _renameTransaction(Transaction transaction) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _RenameTransactionDialog(
+        transaction: transaction,
+        onSave: (title) async {
+          await TransactionRepository.updateTransaction(Transaction(
+            id: transaction.id,
+            title: title,
+            amount: transaction.amount,
+            type: transaction.type,
+            category: transaction.category,
+            date: transaction.date,
+          ));
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteTransaction(Transaction transaction) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: kSurface,
+        title: Text('DELETE TRANSACTION?', style: GoogleFonts.spaceGrotesk(color: kError)),
+        content: Text('Delete "${transaction.title}" permanently?', style: GoogleFonts.spaceGrotesk()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await TransactionRepository.deleteTransaction(transaction.id);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: Text('DELETE', style: GoogleFonts.spaceGrotesk(color: kError)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   colors: [
-                    kPrimary.withValues(alpha: 0.12),
+                    glowColor(kPrimary, 0.12),
                     Colors.transparent,
                   ],
                   radius: 0.8,
@@ -124,11 +199,6 @@ class _HomeScreenState extends State<HomeScreen>
                       letterSpacing: 4,
                     ),
                   ),
-                  leading: _NavIcon(icon: Icons.account_balance_wallet_rounded),
-                  actions: [
-                    _NavIcon(icon: Icons.notifications_outlined),
-                    const SizedBox(width: 4),
-                  ],
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(1),
                     child: Container(
@@ -172,10 +242,37 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(height: 12),
                       ..._recent
                           .take(5)
-                          .map((t) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: TransactionListItem(transaction: t),
-                              )),
+                          .map((t) {
+                            final expanded = t.id == _expandedTransactionId;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Column(
+                                children: [
+                                  TransactionListItem(
+                                    transaction: t,
+                                    onTap: () => _openTransactionActions(t),
+                                  ),
+                                  if (expanded)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: _TransactionExpansionCard(
+                                        transaction: t,
+                                        onRename: () {
+                                          _renameTransaction(t);
+                                        },
+                                        onEdit: () {
+                                          _editTransaction(t);
+                                        },
+                                        onDelete: () {
+                                          _confirmDeleteTransaction(t);
+                                        },
+                                        onClose: _closeTransactionActions,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
                     ]),
                   ),
                 ),
@@ -222,18 +319,6 @@ final _blurFilter = ColorFilter.mode(
   BlendMode.multiply,
 );
 
-class _NavIcon extends StatelessWidget {
-  const _NavIcon({required this.icon});
-  final IconData icon;
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, color: kPrimary),
-      onPressed: () {},
-    );
-  }
-}
-
 class _GreetingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -252,24 +337,12 @@ class _GreetingSection extends StatelessWidget {
         const SizedBox(height: 6),
         RichText(
           text: TextSpan(
-            text: 'Welcome back, ',
+            text: 'Welcome back.',
             style: GoogleFonts.spaceGrotesk(
               color: kOnSurface,
               fontSize: 22,
               fontWeight: FontWeight.w600,
             ),
-            children: [
-              TextSpan(
-                text: 'Alex',
-                style: GoogleFonts.spaceGrotesk(
-                  color: kPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  shadows: [Shadow(color: kPrimary.withValues(alpha: 0.5), blurRadius: 8)],
-                ),
-              ),
-              const TextSpan(text: '.'),
-            ],
           ),
         ),
       ],
@@ -292,27 +365,7 @@ class _BalanceCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Gradient top overlay
-          Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        kPrimary.withValues(alpha: 0.08),
-                        Colors.transparent,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-              Column(
-                children: [
-                  Text(
+          Text(
                     'TOTAL NET WORTH',
                     style: GoogleFonts.spaceGrotesk(
                       color: kOnSurfaceVariant,
@@ -324,7 +377,7 @@ class _BalanceCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   RichText(
                     text: TextSpan(
-                      text: '₹${_fmt(balance, showSign: false).split('.')[0]}',
+                      text: '$currencySymbol${_fmt(balance, showSign: false).split('.')[0]}',
                       style: GoogleFonts.spaceGrotesk(
                         color: kOnSurface,
                         fontSize: 42,
@@ -339,7 +392,7 @@ class _BalanceCard extends StatelessWidget {
                             fontSize: 42,
                             fontWeight: FontWeight.w700,
                             shadows: [
-                              Shadow(color: kPrimary.withValues(alpha: 0.6), blurRadius: 12),
+                              Shadow(color: glowColor(kPrimary, 0.6), blurRadius: 12),
                             ],
                           ),
                         ),
@@ -352,23 +405,19 @@ class _BalanceCard extends StatelessWidget {
                     children: [
                       _StatPill(
                         label: 'Income',
-                        amount: '+₹${_fmt(income)}',
+                        amount: '+$currencySymbol${_fmt(income)}',
                         icon: Icons.arrow_upward_rounded,
                         color: kIncome,
                       ),
                       const SizedBox(width: 12),
                       _StatPill(
                         label: 'Expense',
-                        amount: '-₹${_fmt(expense)}',
+                        amount: '-$currencySymbol${_fmt(expense)}',
                         icon: Icons.arrow_downward_rounded,
                         color: kExpense,
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -399,7 +448,7 @@ class _StatPill extends StatelessWidget {
         color: const Color(0xFF111111),
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: const Color(0xFF333333)),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.12), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: glowColor(color, 0.12), blurRadius: 12)],
       ),
       child: Row(
         children: [
@@ -487,7 +536,7 @@ class _ActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: solid ? null : Border.all(color: kPrimary, width: 1.2),
           boxShadow: solid
-              ? [BoxShadow(color: kPrimary.withValues(alpha: 0.35), blurRadius: 18)]
+              ? [BoxShadow(color: glowColor(kPrimary, 0.35), blurRadius: 18)]
               : null,
         ),
         child: Row(
@@ -540,6 +589,360 @@ class _SectionHeader extends StatelessWidget {
               letterSpacing: 2,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TransactionExpansionCard extends StatelessWidget {
+  const _TransactionExpansionCard({
+    required this.transaction,
+    required this.onRename,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onClose,
+  });
+
+  final Transaction transaction;
+  final VoidCallback onRename;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final amountColor = transaction.isIncome ? kIncome : kOnSurface;
+    final amountSign = transaction.isIncome ? '+' : '-';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF090909),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kPrimary.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(color: glowColor(kPrimary, 0.15), blurRadius: 18, offset: const Offset(0, 10)),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'DETAILS',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: kPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.5,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onClose,
+                child: Icon(Icons.close_rounded, color: kOnSurfaceVariant, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: transaction.category.color.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(transaction.category.icon, color: transaction.category.color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transaction.title,
+                      style: GoogleFonts.spaceGrotesk(
+                        color: kOnSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _Tag(text: transaction.category.label.toUpperCase(), color: transaction.category.color),
+                        const SizedBox(width: 8),
+                        _Tag(text: transaction.type.name.toUpperCase(), color: transaction.isIncome ? kIncome : kExpense),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$amountSign$currencySymbol${transaction.amount.toStringAsFixed(2)}',
+                style: GoogleFonts.spaceGrotesk(
+                  color: amountColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _DetailRow(label: 'Date', value: _formatDate(transaction.date)),
+          const SizedBox(height: 10),
+          _DetailRow(label: 'Category', value: transaction.category.label),
+          const SizedBox(height: 10),
+          _DetailRow(label: 'Type', value: transaction.type.name.toUpperCase()),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _PillButton(
+                  label: 'Rename',
+                  icon: Icons.drive_file_rename_outline_rounded,
+                  onTap: onRename,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PillButton(
+                  label: 'Edit',
+                  icon: Icons.edit_rounded,
+                  onTap: onEdit,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _PillButton(
+            label: 'Delete',
+            icon: Icons.delete_outline_rounded,
+            onTap: onDelete,
+            color: kError,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _PillButton extends StatelessWidget {
+  const _PillButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.color,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = color ?? kPrimary;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          color: baseColor.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: baseColor.withValues(alpha: 0.3)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: baseColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label.toUpperCase(),
+              style: GoogleFonts.spaceGrotesk(
+                color: baseColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.spaceGrotesk(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.spaceGrotesk(
+              color: kOnSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: GoogleFonts.spaceGrotesk(
+              color: kOnSurface,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailActionButton extends StatelessWidget {
+  const _DetailActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.iconColor,
+    this.textColor,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final Color? textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor ?? kOnSurfaceVariant, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.spaceGrotesk(
+                  color: textColor ?? kOnSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: kOnSurfaceVariant, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RenameTransactionDialog extends StatefulWidget {
+  const _RenameTransactionDialog({
+    required this.transaction,
+    required this.onSave,
+  });
+
+  final Transaction transaction;
+  final ValueChanged<String> onSave;
+
+  @override
+  State<_RenameTransactionDialog> createState() => _RenameTransactionDialogState();
+}
+
+class _RenameTransactionDialogState extends State<_RenameTransactionDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.transaction.title);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: kSurface,
+      title: Text('RENAME TRANSACTION', style: GoogleFonts.spaceGrotesk(color: kPrimary)),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'TITLE'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CANCEL'),
+        ),
+        TextButton(
+          onPressed: () {
+            final title = _controller.text.trim();
+            if (title.isEmpty) return;
+            widget.onSave(title);
+          },
+          child: Text('SAVE', style: GoogleFonts.spaceGrotesk(color: kPrimary)),
         ),
       ],
     );

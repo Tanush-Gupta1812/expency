@@ -1,8 +1,9 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/transaction.dart';
+import '../models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -18,9 +19,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   final List<String> _filters = ['This Month', 'Today', 'This Week', 'Older'];
 
+  List<Transaction> _transactions = [];
+
+  void _onRepositoryChanged() {
+    if (mounted) {
+      setState(() {
+        _transactions = List.from(TransactionRepository.transactions);
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _transactions = List.from(TransactionRepository.transactions);
+    TransactionRepository.addListener(_onRepositoryChanged);
+  }
+
+  @override
+  void dispose() {
+    TransactionRepository.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
+
   List<Transaction> get _filtered {
     final now = DateTime.now();
-    return kSampleTransactions.where((t) {
+    return _transactions.where((t) {
       // Time filter
       bool inRange = switch (_selectedFilter) {
         'Today' => t.date.year == now.year &&
@@ -228,7 +252,7 @@ class _SearchBar extends StatelessWidget {
           height: 52,
           width: 52,
           decoration: neonBorderDecoration(radius: 12),
-          child: const Icon(Icons.tune_rounded, color: kPrimary),
+          child: Icon(Icons.tune_rounded, color: kPrimary),
         ),
       ],
     );
@@ -310,7 +334,7 @@ class _BreakdownCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '-\$${totalOut.toStringAsFixed(2)}',
+            '-₹${totalOut.toStringAsFixed(2)}',
             style: GoogleFonts.spaceGrotesk(
               color: Colors.white,
               fontSize: 36,

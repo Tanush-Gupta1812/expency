@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/transaction.dart';
@@ -96,7 +96,7 @@ class TransactionListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${t.isIncome ? '+' : '-'}\$${t.amount.toStringAsFixed(2)}',
+                      '${t.isIncome ? '+' : '-'}₹${t.amount.toStringAsFixed(2)}',
                       style: GoogleFonts.spaceGrotesk(
                         color: t.isIncome ? kIncome : kOnSurface,
                         fontSize: 15,

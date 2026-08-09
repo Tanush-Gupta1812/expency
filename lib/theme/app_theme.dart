@@ -1,10 +1,39 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/transaction_repository.dart';
 
-// â”€â”€â”€ Neon Cyan Palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const kPrimary = Color(0xFF00DBE9);       // Neon Cyan (primary-fixed-dim)
-const kPrimaryBright = Color(0xFF7DF4FF); // Lighter cyan
-const kPrimaryContainer = Color(0xFF00F0FF);
+// ─── Theme Manager ──────────────────────────────────────────────────────────
+class ThemeManager {
+  static Color get primaryColor {
+    final overall = TransactionRepository.overallBudget;
+    if (overall <= 0) return const Color(0xFF00DBE9); // default neon cyan
+
+    final totalExpense = TransactionRepository.transactions
+        .where((t) => !t.isIncome)
+        .fold(0.0, (sum, t) => sum + t.amount);
+
+    final ratio = totalExpense / overall;
+    if (ratio >= 1.0) {
+      return const Color(0xFFFF3B30); // Neon Red
+    } else if (ratio >= 0.8) {
+      return const Color(0xFFFFCC00); // Neon Yellow
+    }
+    return const Color(0xFF00DBE9); // Neon Cyan
+  }
+}
+
+// ─── Dynamic Palette ──────────────────────────────────────────────────────────
+Color get kPrimary => ThemeManager.primaryColor;
+
+Color get kPrimaryBright {
+  final p = kPrimary;
+  if (p == const Color(0xFFFF3B30)) return const Color(0xFFFF7B72); // lighter red
+  if (p == const Color(0xFFFFCC00)) return const Color(0xFFFFE066); // lighter yellow
+  return const Color(0xFF7DF4FF); // lighter cyan
+}
+
+Color get kPrimaryContainer => kPrimary;
+
 const kIncome = Color(0xFF00FF00);        // Lime Green
 const kExpense = Color(0xFFFF00FF);       // Electric Magenta
 const kBackground = Color(0xFF000000);    // Pitch black
@@ -16,7 +45,7 @@ const kOutline = Color(0xFF3B494B);
 const kError = Color(0xFFFFB4AB);
 const kCardBg = Color(0x801A1A1A);        // 50% alpha for glass cards
 
-// â”€â”€â”€ Glow helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Glow helpers ───────────────────────────────────────────────────────────
 BoxDecoration glassCard({bool active = false, Color? glowColor}) {
   final glow = glowColor ?? kPrimary;
   return BoxDecoration(
@@ -46,14 +75,14 @@ BoxDecoration neonBorderDecoration({Color? color, double radius = 12}) {
   );
 }
 
-// â”€â”€â”€ App Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── App Theme ──────────────────────────────────────────────────────────────
 ThemeData buildAppTheme() {
   final base = ThemeData.dark();
   return base.copyWith(
     scaffoldBackgroundColor: kBackground,
-    colorScheme: const ColorScheme.dark(
+    colorScheme: ColorScheme.dark(
       primary: kPrimary,
-      onPrimary: Color(0xFF000000),
+      onPrimary: const Color(0xFF000000),
       secondary: kExpense,
       onSecondary: Colors.white,
       surface: kSurface,
@@ -64,7 +93,7 @@ ThemeData buildAppTheme() {
       bodyColor: kOnSurface,
       displayColor: kOnSurface,
     ),
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
       backgroundColor: Colors.transparent,
       selectedItemColor: kPrimary,
       unselectedItemColor: kOnSurfaceVariant,
@@ -81,7 +110,7 @@ ThemeData buildAppTheme() {
         fontWeight: FontWeight.w700,
         letterSpacing: 4,
       ),
-      iconTheme: const IconThemeData(color: kPrimary),
+      iconTheme: IconThemeData(color: kPrimary),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -96,7 +125,7 @@ ThemeData buildAppTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: kPrimary, width: 1.5),
+        borderSide: BorderSide(color: kPrimary, width: 1.5),
       ),
       hintStyle: GoogleFonts.spaceGrotesk(
         color: kOnSurfaceVariant,
@@ -119,4 +148,3 @@ ThemeData buildAppTheme() {
     ),
   );
 }
-

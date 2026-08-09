@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 enum TransactionType { income, expense }
 
@@ -73,7 +73,30 @@ class Transaction {
 
   bool get isIncome => type == TransactionType.income;
   double get signedAmount => isIncome ? amount : -amount;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'amount': amount,
+      'type': type.name,
+      'category': category.name,
+      'date': date.toIso8601String(),
+    };
+  }
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    return Transaction(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      type: TransactionType.values.byName(json['type'] as String),
+      category: TransactionCategory.values.byName(json['category'] as String),
+      date: DateTime.parse(json['date'] as String),
+    );
+  }
 }
+
 
 // â”€â”€â”€ Sample data (replaces DB for now) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 final List<Transaction> kSampleTransactions = [

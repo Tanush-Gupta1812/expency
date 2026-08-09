@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'theme/app_theme.dart';
@@ -6,8 +6,11 @@ import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 
-void main() {
+import 'models/transaction_repository.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TransactionRepository.init();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -17,6 +20,7 @@ void main() {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const ExpencyApp());
 }
+
 
 class ExpencyApp extends StatelessWidget {
   const ExpencyApp({super.key});

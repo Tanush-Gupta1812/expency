@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/transaction.dart';
+import '../models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
 import '../widgets/add_transaction_sheet.dart';
 
@@ -17,7 +18,15 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _balanceAnim;
   late Animation<double> _balanceFade;
 
-  List<Transaction> _transactions = List.from(kSampleTransactions);
+  List<Transaction> _transactions = [];
+
+  void _onRepositoryChanged() {
+    if (mounted) {
+      setState(() {
+        _transactions = List.from(TransactionRepository.transactions);
+      });
+    }
+  }
 
   double get _totalIncome => _transactions
       .where((t) => t.isIncome)
@@ -29,12 +38,14 @@ class _HomeScreenState extends State<HomeScreen>
 
   double get _balance => _totalIncome - _totalExpense;
 
-  List<Transaction> get _recent => _transactions
+  List<Transaction> get _recent => List.from(_transactions)
     ..sort((a, b) => b.date.compareTo(a.date));
 
   @override
   void initState() {
     super.initState();
+    _transactions = List.from(TransactionRepository.transactions);
+    TransactionRepository.addListener(_onRepositoryChanged);
     _balanceAnim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -45,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    TransactionRepository.removeListener(_onRepositoryChanged);
     _balanceAnim.dispose();
     super.dispose();
   }
@@ -56,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => AddTransactionSheet(
         onAdd: (tx) {
-          setState(() => _transactions = [..._transactions, tx]);
+          TransactionRepository.addTransaction(tx);
         },
       ),
     );
@@ -312,7 +324,7 @@ class _BalanceCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   RichText(
                     text: TextSpan(
-                      text: '\$${_fmt(balance, showSign: false).split('.')[0]}',
+                      text: '₹${_fmt(balance, showSign: false).split('.')[0]}',
                       style: GoogleFonts.spaceGrotesk(
                         color: kOnSurface,
                         fontSize: 42,
@@ -340,14 +352,14 @@ class _BalanceCard extends StatelessWidget {
                     children: [
                       _StatPill(
                         label: 'Income',
-                        amount: '+\$${_fmt(income)}',
+                        amount: '+₹${_fmt(income)}',
                         icon: Icons.arrow_upward_rounded,
                         color: kIncome,
                       ),
                       const SizedBox(width: 12),
                       _StatPill(
                         label: 'Expense',
-                        amount: '-\$${_fmt(expense)}',
+                        amount: '-₹${_fmt(expense)}',
                         icon: Icons.arrow_downward_rounded,
                         color: kExpense,
                       ),

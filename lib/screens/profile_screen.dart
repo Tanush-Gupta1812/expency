@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../models/transaction_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -292,8 +293,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogCtx);
+              await TransactionRepository.clearAllData();
               _showSnack('Data cleared');
             },
             child: Text('CLEAR',

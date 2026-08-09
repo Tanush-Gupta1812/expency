@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/transaction_repository.dart';
+import 'budget_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -80,6 +81,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.tune_rounded,
                         title: 'Preferences',
                         children: [
+                          _ActionRow(
+                            icon: Icons.account_balance_wallet_rounded,
+                            label: 'Manage Budgets',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const BudgetScreen(),
+                              ),
+                            ),
+                          ),
+                          _Divider(),
                           // Currency
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 12),

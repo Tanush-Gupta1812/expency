@@ -238,7 +238,15 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(height: 28),
 
                       // â”€â”€ Recent Activity
-                      _SectionHeader(title: 'Recent Activity', onViewAll: () {}),
+                      Text(
+                        'Recent Activity',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: kOnSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       ..._recent
                           .take(5)
@@ -544,41 +552,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.onViewAll});
-  final String title;
-  final VoidCallback onViewAll;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.spaceGrotesk(
-            color: kOnSurface,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-        GestureDetector(
-          onTap: onViewAll,
-          child: Text(
-            'VIEW ALL',
-            style: GoogleFonts.spaceGrotesk(
-              color: kPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _TransactionExpansionCard extends StatelessWidget {
   const _TransactionExpansionCard({

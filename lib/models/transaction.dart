@@ -5,6 +5,7 @@ enum TransactionType { income, expense }
 enum TransactionCategory {
   food,
   gear,
+  stationary,
   income,
   housing,
   transport,
@@ -18,6 +19,7 @@ extension TransactionCategoryExt on TransactionCategory {
     switch (this) {
       case TransactionCategory.food: return 'Food';
       case TransactionCategory.gear: return 'Gear';
+      case TransactionCategory.stationary: return 'Stationary';
       case TransactionCategory.income: return 'Income';
       case TransactionCategory.housing: return 'Housing';
       case TransactionCategory.transport: return 'Transport';
@@ -31,6 +33,7 @@ extension TransactionCategoryExt on TransactionCategory {
     switch (this) {
       case TransactionCategory.food: return Icons.restaurant_rounded;
       case TransactionCategory.gear: return Icons.shopping_cart_rounded;
+      case TransactionCategory.stationary: return Icons.edit_note_rounded;
       case TransactionCategory.income: return Icons.payments_rounded;
       case TransactionCategory.housing: return Icons.home_rounded;
       case TransactionCategory.transport: return Icons.directions_car_rounded;
@@ -44,6 +47,7 @@ extension TransactionCategoryExt on TransactionCategory {
     switch (this) {
       case TransactionCategory.food: return const Color(0xFF00FF00);
       case TransactionCategory.gear: return const Color(0xFFFF00FF);
+      case TransactionCategory.stationary: return const Color(0xFF5B9BFF);
       case TransactionCategory.income: return const Color(0xFF00DBE9);
       case TransactionCategory.housing: return const Color(0xFFFF00FF);
       case TransactionCategory.transport: return const Color(0xFFFFD700);

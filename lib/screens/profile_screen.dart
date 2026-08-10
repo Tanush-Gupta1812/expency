@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:local_auth/local_auth.dart';
 import '../theme/app_theme.dart';
 import '../models/transaction_repository.dart';
 import 'budget_screen.dart';
@@ -12,7 +14,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _biometricLock = true;
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
@@ -138,31 +140,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _GhostButton(
                                   label: 'EDIT',
                                   onTap: _showCurrencyPicker,
-                                ),
-                              ],
-                            ),
-                          ),
-                          _Divider(),
-
-                          // Biometric
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.fingerprint_rounded,
-                                    color: kOnSurfaceVariant, size: 22),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Biometric Lock',
-                                    style: GoogleFonts.spaceGrotesk(
-                                        color: kOnSurface, fontSize: 15),
-                                  ),
-                                ),
-                                _NeonSwitch(
-                                  value: _biometricLock,
-                                  onChanged: (v) =>
-                                      setState(() => _biometricLock = v),
                                 ),
                               ],
                             ),
@@ -348,48 +325,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<bool> _authenticateBiometric() async {
+    try {
+      final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
+      final bool isSupported = await _localAuth.isDeviceSupported();
+      if (!canCheckBiometrics || !isSupported) {
+        return false;
+      }
+      return await _localAuth.authenticate(
+        localizedReason: 'Verify your identity to clear all data',
+        biometricOnly: true,
+      );
+    } catch (e) {
+      debugPrint('Biometric auth error: $e');
+      return false;
+    }
+  }
+
   void _confirmClear(BuildContext ctx) {
+    bool accepted = false;
+
     showDialog(
       context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF111111),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: kError.withValues(alpha: 0.4)),
-        ),
-        title: Text(
-          'CLEAR ALL DATA?',
-          style: GoogleFonts.spaceGrotesk(
-            color: kError,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF111111),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: kError.withValues(alpha: 0.4)),
           ),
-        ),
-        content: Text(
-          'This will permanently delete all local transactions and cannot be undone.',
-          style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('CANCEL',
-                style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant)),
+          title: Text(
+            'CLEAR ALL DATA?',
+            style: GoogleFonts.spaceGrotesk(
+              color: kError,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+            ),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              await TransactionRepository.clearAllData();
-              if (!mounted) return;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _showSnack('Data cleared');
-              });
-            },
-            child: Text('CLEAR',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This will permanently delete all local transactions and cannot be undone.',
+                style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Checkbox(
+                    value: accepted,
+                    activeColor: kPrimary,
+                    checkColor: Colors.black,
+                    onChanged: (value) {
+                      setDialogState(() => accepted = value ?? false);
+                    },
+                  ),
+                  Expanded(
+                    child: Text(
+                      'I understand this action cannot be undone.',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: kOnSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text('CANCEL',
+                  style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant)),
+            ),
+            TextButton(
+              onPressed: accepted
+                  ? () async {
+                      final authenticated = await _authenticateBiometric();
+                      if (!authenticated) {
+                        if (!mounted) return;
+                        _showSnack('Biometric verification failed');
+                        return;
+                      }
+                      if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                      await TransactionRepository.clearAllData();
+                      if (!mounted) return;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        _showSnack('Data cleared');
+                      });
+                    }
+                  : null,
+              child: Text(
+                'CLEAR',
                 style: GoogleFonts.spaceGrotesk(
-                    color: kError, fontWeight: FontWeight.w700)),
-          ),
-        ],
+                  color: accepted ? kError : kOnSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -507,15 +545,6 @@ class _AvatarSection extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'ID: 0x9A4F...B2C1',
-          style: GoogleFonts.spaceGrotesk(
-            color: kOnSurfaceVariant,
-            fontSize: 12,
-            letterSpacing: 1,
           ),
         ),
       ],

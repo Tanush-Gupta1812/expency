@@ -24,6 +24,26 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
 
+  List<TransactionCategory> get _availableCategories {
+    if (_type == TransactionType.income) {
+      return [TransactionCategory.income];
+    }
+    return TransactionCategory.values
+        .where((category) => category != TransactionCategory.income)
+        .toList();
+  }
+
+  void _setType(TransactionType type) {
+    setState(() {
+      _type = type;
+      if (_type == TransactionType.income) {
+        _category = TransactionCategory.income;
+      } else if (_category == TransactionCategory.income) {
+        _category = TransactionCategory.food;
+      }
+    });
+  }
+
   bool get _isEditing => widget.initialTransaction != null;
 
   @override
@@ -69,7 +89,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _type == TransactionType.expense ? kExpense : kIncome;
+    final accent = _type == TransactionType.expense ? kPrimary : kIncome;
 
     return Container(
       decoration: BoxDecoration(
@@ -121,15 +141,15 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 _TypeButton(
                   label: 'Expense',
                   selected: _type == TransactionType.expense,
-                  color: kExpense,
-                  onTap: () => setState(() => _type = TransactionType.expense),
+                  color: accent,
+                  onTap: () => _setType(TransactionType.expense),
                 ),
                 const SizedBox(width: 12),
                 _TypeButton(
                   label: 'Income',
                   selected: _type == TransactionType.income,
                   color: kIncome,
-                  onTap: () => setState(() => _type = TransactionType.income),
+                  onTap: () => _setType(TransactionType.income),
                 ),
               ],
             ),
@@ -167,7 +187,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: GoogleFonts.spaceGrotesk(color: kOnSurface, fontSize: 18),
               decoration: InputDecoration(
-                hintText: 'AMOUNT (INR)',
+                hintText: 'AMOUNT (${selectedCurrency.code})',
                 hintStyle: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant),
                 filled: true,
                 fillColor: const Color(0xFF111111),
@@ -181,7 +201,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: kExpense.withValues(alpha: 0.9), width: 1.5),
+                  borderSide: BorderSide(color: accent.withValues(alpha: 0.9), width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               ),
@@ -202,7 +222,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: TransactionCategory.values.map((c) {
+              children: _availableCategories.map((c) {
                 final sel = _category == c;
                 return GestureDetector(
                   onTap: () => setState(() => _category = c),

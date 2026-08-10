@@ -10,7 +10,7 @@ class TransactionRepository {
 
   static double _overallBudget = 0.0;
   static final Map<TransactionCategory, double> _categoryBudgets = {};
-  static bool _neonGlowEnabled = true;
+  static bool _neonGlowEnabled = false;
   static String _currencyCode = 'INR';
 
   static List<Transaction> get transactions => List.unmodifiable(_transactions);
@@ -46,9 +46,7 @@ class TransactionRepository {
       final hasRunBefore = prefs.getBool('has_run_before') ?? false;
 
       if (!hasRunBefore) {
-        // First run: pre-populate with sample transactions
-        _transactions.addAll(kSampleTransactions);
-        await _saveToPrefs(prefs);
+        // First run: start with an empty transaction list
         await prefs.setBool('has_run_before', true);
       } else {
         final data = prefs.getString('transactions_data');

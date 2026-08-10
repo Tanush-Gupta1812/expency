@@ -488,26 +488,11 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActionButton(
-            label: 'Add Expense',
-            icon: Icons.add_rounded,
-            solid: true,
-            onTap: onAddExpense,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ActionButton(
-            label: 'Transfer',
-            icon: Icons.swap_horiz_rounded,
-            solid: false,
-            onTap: () {},
-          ),
-        ),
-      ],
+    return _ActionButton(
+      label: 'Add Expense',
+      icon: Icons.add_rounded,
+      solid: true,
+      onTap: onAddExpense,
     );
   }
 }

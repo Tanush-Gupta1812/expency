@@ -74,25 +74,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // â”€â”€ Storage Sync
                       _SectionCard(
-                        icon: Icons.cloud_sync_rounded,
+                        icon: Icons.description_rounded,
                         title: 'Storage Sync',
                         children: [
-                          _ActionRow(
-                            icon: Icons.code_rounded,
-                            label: 'Backup Data (JSON)',
-                            onTap: () => _showSnack('JSON backup coming soon'),
-                          ),
-                          _Divider(),
                           _ActionRow(
                             icon: Icons.description_rounded,
                             label: 'Export to CSV',
                             onTap: () => _showSnack('CSV export coming soon'),
-                          ),
-                          _Divider(),
-                          _ActionRow(
-                            icon: Icons.history_rounded,
-                            label: 'Restore Local Backup',
-                            onTap: () => _showSnack('Restore coming soon'),
                           ),
                         ],
                       ),

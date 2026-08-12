@@ -78,6 +78,24 @@ class Transaction {
   bool get isIncome => type == TransactionType.income;
   double get signedAmount => isIncome ? amount : -amount;
 
+  Transaction copyWith({
+    String? id,
+    String? title,
+    double? amount,
+    TransactionType? type,
+    TransactionCategory? category,
+    DateTime? date,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      category: category ?? this.category,
+      date: date ?? this.date,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

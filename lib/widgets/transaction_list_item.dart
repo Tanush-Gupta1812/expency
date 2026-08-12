@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import '../models/transaction.dart';
+import 'package:expency/models/transaction.dart';
 
 class TransactionListItem extends StatelessWidget {
   const TransactionListItem({super.key, required this.transaction, this.onTap});

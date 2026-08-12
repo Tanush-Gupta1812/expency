@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
-import '../models/transaction.dart';
-import '../models/transaction_repository.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:expency/theme/app_theme.dart';
+import 'package:expency/models/transaction.dart';
+import 'package:expency/models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
 import '../widgets/add_transaction_sheet.dart';
 
@@ -79,10 +83,128 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Future<void> _openImportFromScreenshot() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    final inputImage = InputImage.fromFilePath(file.path);
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    try {
+      final recognizedText = await textRecognizer.processImage(inputImage);
+      final extracted = _extractExpensesFromText(recognizedText.text);
+      if (extracted.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No expense lines detected in screenshot.', style: GoogleFonts.spaceGrotesk()),
+              backgroundColor: kSurface,
+            ),
+          );
+        }
+        return;
+      }
+
+      final transactions = <Transaction>[];
+      final uniqueRecipients = <String>{};
+      final recipientCategoryOverrides = <String, TransactionCategory>{};
+
+      for (final expense in extracted) {
+        final recipientKey = expense.recipient.toLowerCase().trim();
+        if (!_hasCategoryForRecipient(recipientKey) && !uniqueRecipients.contains(recipientKey)) {
+          final pickedCategory = await _pickCategoryForRecipient(expense.recipient);
+          if (pickedCategory == null) continue;
+          uniqueRecipients.add(recipientKey);
+          recipientCategoryOverrides[recipientKey] = pickedCategory;
+          await TransactionRepository.setRecipientCategory(expense.recipient, pickedCategory);
+        }
+
+        final category = recipientCategoryOverrides[recipientKey] ?? _getCategoryForRecipient(recipientKey) ?? TransactionCategory.other;
+        transactions.add(Transaction(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          title: expense.recipient,
+          amount: expense.amount,
+          type: TransactionType.expense,
+          category: category,
+          date: DateTime.now(),
+        ));
+      }
+
+      if (transactions.isNotEmpty) {
+        await TransactionRepository.addTransactions(transactions);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${transactions.length} expenses imported.', style: GoogleFonts.spaceGrotesk()),
+              backgroundColor: kSurface,
+            ),
+          );
+        }
+      }
+    } finally {
+      textRecognizer.close();
+    }
+  }
+
+  bool _hasCategoryForRecipient(String recipientKey) {
+    return TransactionRepository.recipientCategoryMap.containsKey(recipientKey);
+  }
+
+  TransactionCategory? _getCategoryForRecipient(String recipientKey) {
+    return TransactionRepository.recipientCategoryMap[recipientKey];
+  }
+
+  Future<TransactionCategory?> _pickCategoryForRecipient(String recipient) async {
+    return showModalBottomSheet<TransactionCategory>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _CategoryPickerSheet(
+        recipient: recipient,
+      ),
+    );
+  }
+
+  List<_ExtractedExpense> _extractExpensesFromText(String text) {
+    final lines = text
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    final amountRegex = RegExp(r'₹?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)');
+    final skipRegex = RegExp(r'^(total|subtotal|balance|paid|date|time|txn|transaction|gst|tax|discount|rupees|amounts?)\b', caseSensitive: false);
+    final expenses = <_ExtractedExpense>[];
+
+    String? lastLabel;
+    for (final line in lines) {
+      final normalized = line.replaceAll('₹', '').replaceAll(',', '').trim();
+      final match = amountRegex.firstMatch(line);
+      if (match != null) {
+        final amountText = match.group(1)?.replaceAll(',', '');
+        final amount = double.tryParse(amountText ?? '');
+        if (amount != null && amount > 0 && !skipRegex.hasMatch(line)) {
+          final recipient = lastLabel ?? 'Expense';
+          if (recipient.toLowerCase().contains('total')) continue;
+          expenses.add(_ExtractedExpense(recipient: recipient, amount: amount));
+        }
+        continue;
+      }
+      if (line.length > 2 && !RegExp(r'^[0-9/\-:]+$').hasMatch(line)) {
+        lastLabel = line;
+      }
+    }
+    return expenses;
+  }
+
   void _openTransactionActions(Transaction transaction) {
     setState(() {
       _expandedTransactionId = _expandedTransactionId == transaction.id ? null : transaction.id;
     });
+  }
+
+  void _addExtractedTransactions(List<Transaction> transactions) async {
+    if (transactions.isEmpty) return;
+    await TransactionRepository.addTransactions(transactions);
   }
 
   void _closeTransactionActions() {
@@ -103,6 +225,19 @@ class _HomeScreenState extends State<HomeScreen>
         onUpdate: (updated) => TransactionRepository.updateTransaction(updated),
       ),
     );
+  }
+
+  Future<void> _changeTransactionCategory(Transaction transaction) async {
+    final category = await _pickCategoryForRecipient(transaction.title);
+    if (category == null || category == transaction.category) return;
+    await TransactionRepository.updateTransaction(Transaction(
+      id: transaction.id,
+      title: transaction.title,
+      amount: transaction.amount,
+      type: transaction.type,
+      category: category,
+      date: transaction.date,
+    ));
   }
 
   void _renameTransaction(Transaction transaction) {
@@ -234,7 +369,17 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(height: 16),
 
                       // â”€â”€ Quick Actions
-                      _QuickActions(onAddExpense: _openAddTransaction),
+                      _QuickActions(
+                        onAddExpense: _openAddTransaction,
+                        onImportScreenshot: _openImportFromScreenshot,
+                      ),
+                      const SizedBox(height: 16),
+                      _ActionButton(
+                        label: 'Import from Screenshot',
+                        icon: Icons.photo_library_rounded,
+                        solid: true,
+                        onTap: _openImportFromScreenshot,
+                      ),
                       const SizedBox(height: 28),
 
                       // â”€â”€ Recent Activity
@@ -270,6 +415,9 @@ class _HomeScreenState extends State<HomeScreen>
                                         },
                                         onEdit: () {
                                           _editTransaction(t);
+                                        },
+                                        onChangeCategory: () {
+                                          _changeTransactionCategory(t);
                                         },
                                         onDelete: () {
                                           _confirmDeleteTransaction(t);
@@ -491,16 +639,32 @@ class _StatPill extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onAddExpense});
+  const _QuickActions({required this.onAddExpense, required this.onImportScreenshot});
   final VoidCallback onAddExpense;
+  final VoidCallback onImportScreenshot;
 
   @override
   Widget build(BuildContext context) {
-    return _ActionButton(
-      label: 'Add Expense',
-      icon: Icons.add_rounded,
-      solid: true,
-      onTap: onAddExpense,
+    return Row(
+      children: [
+        Expanded(
+          child: _ActionButton(
+            label: 'Add Expense',
+            icon: Icons.add_rounded,
+            solid: true,
+            onTap: onAddExpense,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _ActionButton(
+            label: 'Import Screenshot',
+            icon: Icons.image_rounded,
+            solid: false,
+            onTap: onImportScreenshot,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -558,6 +722,7 @@ class _TransactionExpansionCard extends StatelessWidget {
     required this.transaction,
     required this.onRename,
     required this.onEdit,
+    required this.onChangeCategory,
     required this.onDelete,
     required this.onClose,
   });
@@ -565,6 +730,7 @@ class _TransactionExpansionCard extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onRename;
   final VoidCallback onEdit;
+  final VoidCallback onChangeCategory;
   final VoidCallback onDelete;
   final VoidCallback onClose;
 
@@ -740,6 +906,132 @@ class _PillButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CategoryPickerSheet extends StatefulWidget {
+  const _CategoryPickerSheet({required this.recipient});
+  final String recipient;
+
+  @override
+  State<_CategoryPickerSheet> createState() => _CategoryPickerSheetState();
+}
+
+class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
+  TransactionCategory _selectedCategory = TransactionCategory.other;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = TransactionCategory.values.firstWhere(
+      (category) => category != TransactionCategory.income,
+      orElse: () => TransactionCategory.other,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0A0A),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: kPrimary.withValues(alpha: 0.35)),
+        boxShadow: [BoxShadow(color: glowColor(kPrimary, 0.2), blurRadius: 30)],
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 20,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kOutline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Assign category for',
+            style: GoogleFonts.spaceGrotesk(color: kOnSurfaceVariant, fontSize: 12, letterSpacing: 2),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.recipient,
+            style: GoogleFonts.spaceGrotesk(color: kOnSurface, fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: TransactionCategory.values
+                .where((category) => category != TransactionCategory.income)
+                .map((category) {
+              final selected = _selectedCategory == category;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedCategory = category),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: selected ? category.color.withValues(alpha: 0.2) : const Color(0xFF111111),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: selected ? category.color : const Color(0xFF333333)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(category.icon, color: selected ? category.color : kOnSurfaceVariant, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        category.label,
+                        style: GoogleFonts.spaceGrotesk(
+                          color: selected ? category.color : kOnSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(_selectedCategory),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: Text(
+                'SAVE CATEGORY',
+                style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700, letterSpacing: 1.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExtractedExpense {
+  _ExtractedExpense({required this.recipient, required this.amount});
+  final String recipient;
+  final double amount;
 }
 
 class _Tag extends StatelessWidget {

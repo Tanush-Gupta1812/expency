@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import '../theme/app_theme.dart';
-import '../models/transaction_repository.dart';
+import 'package:expency/models/transaction_repository.dart';
 import 'budget_screen.dart';
 
 class ProfileScreen extends StatefulWidget {

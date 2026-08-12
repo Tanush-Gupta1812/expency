@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'transaction.dart';
+import 'package:expency/models/transaction.dart';
 
 class TransactionRepository {
   static final List<Transaction> _transactions = [];
@@ -10,12 +10,14 @@ class TransactionRepository {
 
   static double _overallBudget = 0.0;
   static final Map<TransactionCategory, double> _categoryBudgets = {};
+  static final Map<String, TransactionCategory> _recipientCategories = {};
   static bool _neonGlowEnabled = false;
   static String _currencyCode = 'INR';
 
   static List<Transaction> get transactions => List.unmodifiable(_transactions);
   static double get overallBudget => _overallBudget;
   static Map<TransactionCategory, double> get categoryBudgets => Map.unmodifiable(_categoryBudgets);
+  static Map<String, TransactionCategory> get recipientCategoryMap => Map.unmodifiable(_recipientCategories);
   static bool get neonGlowEnabled => _neonGlowEnabled;
   static String get currencyCode => _currencyCode;
 
@@ -73,6 +75,18 @@ class TransactionRepository {
             } catch (_) {}
           });
         }
+
+        final recipientCategoriesJson = prefs.getString('recipient_categories');
+        if (recipientCategoriesJson != null) {
+          final Map<String, dynamic> decoded = jsonDecode(recipientCategoriesJson);
+          _recipientCategories.clear();
+          decoded.forEach((key, value) {
+            try {
+              final cat = TransactionCategory.values.byName(value as String);
+              _recipientCategories[key] = cat;
+            } catch (_) {}
+          });
+        }
       }
       _neonGlowEnabled = prefs.getBool('neon_glow_enabled') ?? true;
       _currencyCode = prefs.getString('currency_code') ?? 'INR';
@@ -84,6 +98,12 @@ class TransactionRepository {
 
   static Future<void> addTransaction(Transaction t) async {
     _transactions.add(t);
+    _notifyListeners();
+    await _save();
+  }
+
+  static Future<void> addTransactions(List<Transaction> transactions) async {
+    _transactions.addAll(transactions);
     _notifyListeners();
     await _save();
   }
@@ -106,11 +126,13 @@ class TransactionRepository {
     _transactions.clear();
     _overallBudget = 0.0;
     _categoryBudgets.clear();
+    _recipientCategories.clear();
     _notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('transactions_data');
     await prefs.remove('overall_budget');
     await prefs.remove('category_budgets');
+    await prefs.remove('recipient_categories');
     // Keep 'has_run_before' as true so it doesn't re-populate on restart
     await prefs.setBool('has_run_before', true);
   }
@@ -138,6 +160,21 @@ class TransactionRepository {
       await prefs.setString('category_budgets', jsonEncode(temp));
     } catch (e) {
       debugPrint('Error saving category budgets: $e');
+    }
+  }
+
+  static Future<void> setRecipientCategory(String recipient, TransactionCategory category) async {
+    _recipientCategories[recipient] = category;
+    _notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final Map<String, String> temp = {};
+      _recipientCategories.forEach((key, val) {
+        temp[key] = val.name;
+      });
+      await prefs.setString('recipient_categories', jsonEncode(temp));
+    } catch (e) {
+      debugPrint('Error saving recipient categories: $e');
     }
   }
 

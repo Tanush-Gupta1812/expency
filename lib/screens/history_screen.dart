@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import '../models/transaction.dart';
-import '../models/transaction_repository.dart';
+import 'package:expency/models/transaction.dart';
+import 'package:expency/models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
 
 class HistoryScreen extends StatefulWidget {

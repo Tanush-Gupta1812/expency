@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'theme/app_theme.dart';
-import 'screens/home_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:expency/theme/app_theme.dart';
+import 'package:expency/screens/home_screen.dart';
+import 'package:expency/screens/history_screen.dart';
+import 'package:expency/screens/profile_screen.dart';
 
-import 'models/transaction_repository.dart';
+import 'package:expency/models/transaction_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

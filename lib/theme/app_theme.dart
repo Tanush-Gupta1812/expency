@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/transaction_repository.dart';
+import 'package:expency/models/transaction_repository.dart';
 
 // ─── Theme Manager ──────────────────────────────────────────────────────────
 class ThemeManager {

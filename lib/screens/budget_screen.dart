@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../models/transaction.dart';
-import '../models/transaction_repository.dart';
+import 'package:expency/models/transaction.dart';
+import 'package:expency/models/transaction_repository.dart';
 import '../theme/app_theme.dart';
 
 class BudgetScreen extends StatefulWidget {

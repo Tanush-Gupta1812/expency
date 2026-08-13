@@ -5,6 +5,9 @@ import '../theme/app_theme.dart';
 import 'package:expency/models/transaction.dart';
 import 'package:expency/models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
+import '../widgets/transaction_expansion_card.dart';
+import '../widgets/add_transaction_sheet.dart';
+import 'home_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -20,13 +23,113 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final List<String> _filters = ['This Month', 'Today', 'This Week', 'Older'];
 
   List<Transaction> _transactions = [];
+  String? _expandedTransactionId;
 
   void _onRepositoryChanged() {
     if (mounted) {
       setState(() {
         _transactions = List.from(TransactionRepository.transactions);
+        if (_expandedTransactionId != null &&
+            !_transactions.any((t) => t.id == _expandedTransactionId)) {
+          _expandedTransactionId = null;
+        }
       });
     }
+  }
+
+  void _openTransactionActions(Transaction transaction) {
+    setState(() {
+      _expandedTransactionId = _expandedTransactionId == transaction.id ? null : transaction.id;
+    });
+  }
+
+  void _closeTransactionActions() {
+    if (_expandedTransactionId != null) {
+      setState(() => _expandedTransactionId = null);
+    }
+  }
+
+  void _editTransaction(Transaction transaction) {
+    _closeTransactionActions();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddTransactionSheet(
+        initialTransaction: transaction,
+        onAdd: (_) {},
+        onUpdate: (updated) => TransactionRepository.updateTransaction(updated),
+      ),
+    );
+  }
+
+  void _renameTransaction(Transaction transaction) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => RenameTransactionDialog(
+        transaction: transaction,
+        onSave: (title) async {
+          await TransactionRepository.updateTransaction(Transaction(
+            id: transaction.id,
+            title: title,
+            amount: transaction.amount,
+            type: transaction.type,
+            category: transaction.category,
+            date: transaction.date,
+          ));
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteTransaction(Transaction transaction) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: kSurface,
+        title: Text('DELETE TRANSACTION?', style: GoogleFonts.spaceGrotesk(color: kError)),
+        content: Text('Delete "${transaction.title}" permanently?', style: GoogleFonts.spaceGrotesk()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await TransactionRepository.deleteTransaction(transaction.id);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: Text('DELETE', style: GoogleFonts.spaceGrotesk(color: kError)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changeTransactionCategory(Transaction transaction) async {
+    final category = await _pickCategoryForRecipient(transaction.title, amount: transaction.amount);
+    if (category == null || category == transaction.category) return;
+    await TransactionRepository.updateTransaction(Transaction(
+      id: transaction.id,
+      title: transaction.title,
+      amount: transaction.amount,
+      type: transaction.type,
+      category: category,
+      date: transaction.date,
+    ));
+  }
+
+  Future<TransactionCategory?> _pickCategoryForRecipient(String recipient, {double? amount}) async {
+    return showModalBottomSheet<TransactionCategory>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => CategoryPickerSheet(
+        recipient: recipient,
+        amount: amount,
+      ),
+    );
   }
 
   @override
@@ -148,16 +251,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         const SizedBox(height: 24),
                       ],
 
-                      // â”€â”€ Grouped list
+                      // ── Grouped list
                       ..._grouped.entries.map((entry) => Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _DateHeader(label: entry.key),
                               const SizedBox(height: 8),
-                              ...entry.value.map((t) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: TransactionListItem(transaction: t),
-                                  )),
+                              ...entry.value.map((t) {
+                                final expanded = t.id == _expandedTransactionId;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Column(
+                                    children: [
+                                      TransactionListItem(
+                                        transaction: t,
+                                        onTap: () => _openTransactionActions(t),
+                                      ),
+                                      if (expanded)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: TransactionExpansionCard(
+                                            transaction: t,
+                                            onRename: () {
+                                              _renameTransaction(t);
+                                            },
+                                            onEdit: () {
+                                              _editTransaction(t);
+                                            },
+                                            onChangeCategory: () {
+                                              _changeTransactionCategory(t);
+                                            },
+                                            onDelete: () {
+                                              _confirmDeleteTransaction(t);
+                                            },
+                                            onClose: _closeTransactionActions,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }),
                               const SizedBox(height: 16),
                             ],
                           )),

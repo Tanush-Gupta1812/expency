@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -9,6 +7,7 @@ import 'package:expency/models/transaction.dart';
 import 'package:expency/models/transaction_repository.dart';
 import '../widgets/transaction_list_item.dart';
 import '../widgets/add_transaction_sheet.dart';
+import '../widgets/transaction_expansion_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,11 +87,18 @@ class _HomeScreenState extends State<HomeScreen>
     final file = await picker.pickImage(source: ImageSource.gallery);
     if (file == null) return;
 
+    debugPrint('IMPORT SCREENSHOT: Image picked: ${file.path}');
     final inputImage = InputImage.fromFilePath(file.path);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
       final recognizedText = await textRecognizer.processImage(inputImage);
-      final extracted = _extractExpensesFromText(recognizedText.text);
+      debugPrint('IMPORT SCREENSHOT: OCR text length: ${recognizedText.text.length}');
+      debugPrint('IMPORT SCREENSHOT: OCR raw text: \n${recognizedText.text}');
+      final extracted = _extractExpensesFromLayout(recognizedText);
+      debugPrint('IMPORT SCREENSHOT: Extracted count: ${extracted.length}');
+      for (final exp in extracted) {
+        debugPrint('IMPORT SCREENSHOT: Extracted expense: ${exp.recipient} -> ${exp.amount}');
+      }
       if (extracted.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -112,16 +118,16 @@ class _HomeScreenState extends State<HomeScreen>
       for (final expense in extracted) {
         final recipientKey = expense.recipient.toLowerCase().trim();
         if (!_hasCategoryForRecipient(recipientKey) && !uniqueRecipients.contains(recipientKey)) {
-          final pickedCategory = await _pickCategoryForRecipient(expense.recipient);
-          if (pickedCategory == null) continue;
+          final pickedCategory = await _pickCategoryForRecipient(expense.recipient, amount: expense.amount);
+          final category = pickedCategory ?? TransactionCategory.other;
           uniqueRecipients.add(recipientKey);
-          recipientCategoryOverrides[recipientKey] = pickedCategory;
-          await TransactionRepository.setRecipientCategory(expense.recipient, pickedCategory);
+          recipientCategoryOverrides[recipientKey] = category;
+          await TransactionRepository.setRecipientCategory(expense.recipient, category);
         }
 
         final category = recipientCategoryOverrides[recipientKey] ?? _getCategoryForRecipient(recipientKey) ?? TransactionCategory.other;
         transactions.add(Transaction(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          id: '${DateTime.now().microsecondsSinceEpoch}_${transactions.length}',
           title: expense.recipient,
           amount: expense.amount,
           type: TransactionType.expense,
@@ -154,45 +160,126 @@ class _HomeScreenState extends State<HomeScreen>
     return TransactionRepository.recipientCategoryMap[recipientKey];
   }
 
-  Future<TransactionCategory?> _pickCategoryForRecipient(String recipient) async {
+  Future<TransactionCategory?> _pickCategoryForRecipient(String recipient, {double? amount}) async {
     return showModalBottomSheet<TransactionCategory>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _CategoryPickerSheet(
+      builder: (_) => CategoryPickerSheet(
         recipient: recipient,
+        amount: amount,
       ),
     );
   }
 
-  List<_ExtractedExpense> _extractExpensesFromText(String text) {
-    final lines = text
-        .split(RegExp(r'\r?\n'))
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-    final amountRegex = RegExp(r'₹?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)');
-    final skipRegex = RegExp(r'^(total|subtotal|balance|paid|date|time|txn|transaction|gst|tax|discount|rupees|amounts?)\b', caseSensitive: false);
-    final expenses = <_ExtractedExpense>[];
+  String _cleanRecipient(String name) {
+    String cleaned = name;
+    final prefixes = [
+      RegExp(r'^to:\s*', caseSensitive: false),
+      RegExp(r'^paid\s+(successfully\s+)?(to\s+)?', caseSensitive: false),
+      RegExp(r'^towards\s*', caseSensitive: false),
+      RegExp(r'^transfer\s+to\s*', caseSensitive: false),
+      RegExp(r'^sent?\s+to\s*', caseSensitive: false),
+      RegExp(r'^debited\s+for\s*', caseSensitive: false),
+    ];
+    for (final prefix in prefixes) {
+      cleaned = cleaned.replaceFirst(prefix, '');
+    }
+    return cleaned.trim();
+  }
 
-    String? lastLabel;
-    for (final line in lines) {
-      final normalized = line.replaceAll('₹', '').replaceAll(',', '').trim();
-      final match = amountRegex.firstMatch(line);
-      if (match != null) {
-        final amountText = match.group(1)?.replaceAll(',', '');
-        final amount = double.tryParse(amountText ?? '');
-        if (amount != null && amount > 0 && !skipRegex.hasMatch(line)) {
-          final recipient = lastLabel ?? 'Expense';
-          if (recipient.toLowerCase().contains('total')) continue;
-          expenses.add(_ExtractedExpense(recipient: recipient, amount: amount));
-        }
-        continue;
-      }
-      if (line.length > 2 && !RegExp(r'^[0-9/\-:]+$').hasMatch(line)) {
-        lastLabel = line;
+
+  List<_ExtractedExpense> _extractExpensesFromLayout(RecognizedText recognizedText) {
+    final List<TextLine> allLines = [];
+    for (final block in recognizedText.blocks) {
+      for (final line in block.lines) {
+        allLines.add(line);
       }
     }
+    if (allLines.isEmpty) return [];
+
+    debugPrint('=== ML Kit Detected Lines (${allLines.length}) ===');
+    for (final line in allLines) {
+      debugPrint('LINE: "${line.text}" | RECT: ${line.boundingBox}');
+    }
+
+    allLines.sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
+
+    final filteredLines = allLines;
+
+    final expenses = <_ExtractedExpense>[];
+
+    final amountRegex = RegExp(
+      r'([-\+])?\s*([₹ZzFf7])\s*(\d+(?:,\d{3})*(?:\.[0-9]{1,2})?)\b',
+      caseSensitive: false
+    );
+    final noiseLineRegex = RegExp(
+      r'^(total|subtotal|balance|paid\s+successfully|transaction\s+successful|completed|status|debited\s+from|from|txn\s+id|transaction\s+id|ref\s+no|utr|wallet\s+txn|account|a/c|card|xxxx|google\s+pay|gpay|paytm|phonepe|july|august|september|october|november|december|january|february|march|april|may|june)\b',
+      caseSensitive: false
+    );
+
+    bool isOverlap(Rect a, Rect b) {
+      double overlapY = (a.bottom < b.bottom ? a.bottom : b.bottom) - (a.top > b.top ? a.top : b.top);
+      double minHeight = a.height < b.height ? a.height : b.height;
+      return overlapY > 0.4 * minHeight;
+    }
+
+    for (int i = 0; i < filteredLines.length; i++) {
+      final amountLine = filteredLines[i];
+      final amountMatch = amountRegex.firstMatch(amountLine.text);
+      if (amountMatch == null) continue;
+
+      if (amountMatch.group(1) == '+') continue;
+
+      final amountValText = amountMatch.group(3)?.replaceAll(',', '');
+      final amount = double.tryParse(amountValText ?? '');
+      if (amount == null || amount <= 0) continue;
+
+      TextLine? bestLabelLine;
+      double bestDistanceX = double.maxFinite;
+
+      for (final candidate in filteredLines) {
+        if (candidate == amountLine) continue;
+
+        if (isOverlap(amountLine.boundingBox, candidate.boundingBox)) {
+          if (candidate.boundingBox.right <= amountLine.boundingBox.left + 5) {
+            if (noiseLineRegex.hasMatch(candidate.text)) continue;
+            if (RegExp(r'^[0-9/\-:+ ]+$').hasMatch(candidate.text)) continue;
+
+            double distanceX = amountLine.boundingBox.left - candidate.boundingBox.right;
+            if (distanceX < bestDistanceX) {
+              bestDistanceX = distanceX;
+              bestLabelLine = candidate;
+            }
+          }
+        }
+      }
+
+      String recipient = 'Expense';
+      if (bestLabelLine != null) {
+        recipient = _cleanRecipient(bestLabelLine.text);
+      } else {
+        for (int j = i - 1; j >= 0; j--) {
+          final candidate = filteredLines[j];
+          if (noiseLineRegex.hasMatch(candidate.text)) continue;
+          if (RegExp(r'^[0-9/\-:+ ]+$').hasMatch(candidate.text)) continue;
+          if (amountRegex.hasMatch(candidate.text)) continue;
+
+          recipient = _cleanRecipient(candidate.text);
+          break;
+        }
+      }
+
+      final lowerRecip = recipient.toLowerCase();
+      if (lowerRecip.contains('total') || 
+          lowerRecip.contains('balance') || 
+          lowerRecip.contains('check out your')) {
+        continue;
+      }
+
+      expenses.add(_ExtractedExpense(recipient: recipient, amount: amount));
+    }
+
     return expenses;
   }
 
@@ -202,10 +289,6 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  void _addExtractedTransactions(List<Transaction> transactions) async {
-    if (transactions.isEmpty) return;
-    await TransactionRepository.addTransactions(transactions);
-  }
 
   void _closeTransactionActions() {
     if (_expandedTransactionId != null) {
@@ -228,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _changeTransactionCategory(Transaction transaction) async {
-    final category = await _pickCategoryForRecipient(transaction.title);
+    final category = await _pickCategoryForRecipient(transaction.title, amount: transaction.amount);
     if (category == null || category == transaction.category) return;
     await TransactionRepository.updateTransaction(Transaction(
       id: transaction.id,
@@ -243,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _renameTransaction(Transaction transaction) {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => _RenameTransactionDialog(
+      builder: (dialogContext) => RenameTransactionDialog(
         transaction: transaction,
         onSave: (title) async {
           await TransactionRepository.updateTransaction(Transaction(
@@ -408,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   if (expanded)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 8),
-                                      child: _TransactionExpansionCard(
+                                      child: TransactionExpansionCard(
                                         transaction: t,
                                         onRename: () {
                                           _renameTransaction(t);
@@ -696,227 +779,45 @@ class _ActionButton extends StatelessWidget {
               ? [BoxShadow(color: glowColor(kPrimary, 0.35), blurRadius: 18)]
               : null,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: solid ? Colors.black : kPrimary, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.spaceGrotesk(
-                color: solid ? Colors.black : kPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-class _TransactionExpansionCard extends StatelessWidget {
-  const _TransactionExpansionCard({
-    required this.transaction,
-    required this.onRename,
-    required this.onEdit,
-    required this.onChangeCategory,
-    required this.onDelete,
-    required this.onClose,
-  });
-
-  final Transaction transaction;
-  final VoidCallback onRename;
-  final VoidCallback onEdit;
-  final VoidCallback onChangeCategory;
-  final VoidCallback onDelete;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final amountColor = transaction.isIncome ? kIncome : kOnSurface;
-    final amountSign = transaction.isIncome ? '+' : '-';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF090909),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kPrimary.withValues(alpha: 0.18)),
-        boxShadow: [
-          BoxShadow(color: glowColor(kPrimary, 0.15), blurRadius: 18, offset: const Offset(0, 10)),
-        ],
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'DETAILS',
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: solid ? Colors.black : kPrimary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  label,
                   style: GoogleFonts.spaceGrotesk(
-                    color: kPrimary,
-                    fontSize: 11,
+                    color: solid ? Colors.black : kPrimary,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 2.5,
+                    fontSize: 15,
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: onClose,
-                child: Icon(Icons.close_rounded, color: kOnSurfaceVariant, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: transaction.category.color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(transaction.category.icon, color: transaction.category.color, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transaction.title,
-                      style: GoogleFonts.spaceGrotesk(
-                        color: kOnSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        _Tag(text: transaction.category.label.toUpperCase(), color: transaction.category.color),
-                        const SizedBox(width: 8),
-                        _Tag(text: transaction.type.name.toUpperCase(), color: transaction.isIncome ? kIncome : kExpense),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$amountSign$currencySymbol${transaction.amount.toStringAsFixed(2)}',
-                style: GoogleFonts.spaceGrotesk(
-                  color: amountColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _DetailRow(label: 'Date', value: _formatDate(transaction.date)),
-          const SizedBox(height: 10),
-          _DetailRow(label: 'Category', value: transaction.category.label),
-          const SizedBox(height: 10),
-          _DetailRow(label: 'Type', value: transaction.type.name.toUpperCase()),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _PillButton(
-                  label: 'Rename',
-                  icon: Icons.drive_file_rename_outline_rounded,
-                  onTap: onRename,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _PillButton(
-                  label: 'Edit',
-                  icon: Icons.edit_rounded,
-                  onTap: onEdit,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _PillButton(
-            label: 'Delete',
-            icon: Icons.delete_outline_rounded,
-            onTap: onDelete,
-            color: kError,
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _PillButton extends StatelessWidget {
-  const _PillButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.color,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final baseColor = color ?? kPrimary;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 46,
-        decoration: BoxDecoration(
-          color: baseColor.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: baseColor.withValues(alpha: 0.3)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: baseColor, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label.toUpperCase(),
-              style: GoogleFonts.spaceGrotesk(
-                color: baseColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _CategoryPickerSheet extends StatefulWidget {
-  const _CategoryPickerSheet({required this.recipient});
+
+
+
+class CategoryPickerSheet extends StatefulWidget {
+  const CategoryPickerSheet({super.key, required this.recipient, this.amount});
   final String recipient;
+  final double? amount;
 
   @override
-  State<_CategoryPickerSheet> createState() => _CategoryPickerSheetState();
+  State<CategoryPickerSheet> createState() => CategoryPickerSheetState();
 }
 
-class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
+class CategoryPickerSheetState extends State<CategoryPickerSheet> {
   TransactionCategory _selectedCategory = TransactionCategory.other;
 
   @override
@@ -967,6 +868,13 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
             widget.recipient,
             style: GoogleFonts.spaceGrotesk(color: kOnSurface, fontSize: 18, fontWeight: FontWeight.w700),
           ),
+          if (widget.amount != null) ...[  
+            const SizedBox(height: 4),
+            Text(
+              '₹${widget.amount!.toStringAsFixed(2)}',
+              style: GoogleFonts.spaceGrotesk(color: kPrimary, fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+          ],
           const SizedBox(height: 20),
           Wrap(
             spacing: 10,
@@ -1034,70 +942,7 @@ class _ExtractedExpense {
   final double amount;
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag({required this.text, required this.color});
-  final String text;
-  final Color color;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.spaceGrotesk(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: GoogleFonts.spaceGrotesk(
-              color: kOnSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: GoogleFonts.spaceGrotesk(
-              color: kOnSurface,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _DetailActionButton extends StatelessWidget {
   const _DetailActionButton({
@@ -1143,8 +988,9 @@ class _DetailActionButton extends StatelessWidget {
   }
 }
 
-class _RenameTransactionDialog extends StatefulWidget {
-  const _RenameTransactionDialog({
+class RenameTransactionDialog extends StatefulWidget {
+  const RenameTransactionDialog({
+    super.key,
     required this.transaction,
     required this.onSave,
   });
@@ -1153,10 +999,10 @@ class _RenameTransactionDialog extends StatefulWidget {
   final ValueChanged<String> onSave;
 
   @override
-  State<_RenameTransactionDialog> createState() => _RenameTransactionDialogState();
+  State<RenameTransactionDialog> createState() => RenameTransactionDialogState();
 }
 
-class _RenameTransactionDialogState extends State<_RenameTransactionDialog> {
+class RenameTransactionDialogState extends State<RenameTransactionDialog> {
   late final TextEditingController _controller;
 
   @override

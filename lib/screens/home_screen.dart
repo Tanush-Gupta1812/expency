@@ -451,21 +451,14 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // â”€â”€ Quick Actions
+                      // ── Quick Actions
                       _QuickActions(
                         onAddExpense: _openAddTransaction,
                         onImportScreenshot: _openImportFromScreenshot,
                       ),
-                      const SizedBox(height: 16),
-                      _ActionButton(
-                        label: 'Import from Screenshot',
-                        icon: Icons.photo_library_rounded,
-                        solid: true,
-                        onTap: _openImportFromScreenshot,
-                      ),
                       const SizedBox(height: 28),
 
-                      // â”€â”€ Recent Activity
+                      // ── Recent Activity
                       Text(
                         'Recent Activity',
                         style: GoogleFonts.spaceGrotesk(
@@ -940,52 +933,6 @@ class _ExtractedExpense {
   _ExtractedExpense({required this.recipient, required this.amount});
   final String recipient;
   final double amount;
-}
-
-
-
-class _DetailActionButton extends StatelessWidget {
-  const _DetailActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.iconColor,
-    this.textColor,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor ?? kOnSurfaceVariant, size: 18),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.spaceGrotesk(
-                  color: textColor ?? kOnSurface,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: kOnSurfaceVariant, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class RenameTransactionDialog extends StatefulWidget {

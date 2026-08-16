@@ -1,4 +1,4 @@
-package com.expency.expency
+package com.expency.app
 
 import io.flutter.embedding.android.FlutterActivity
 

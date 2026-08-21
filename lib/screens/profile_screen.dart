@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import '../theme/app_theme.dart';
 import 'package:expency/models/transaction_repository.dart';
+import '../widgets/expency_logo_widget.dart';
 import 'budget_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -479,28 +480,7 @@ class _AvatarSection extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 20),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer glow ring
-            Container(
-              width: 104,
-              height: 104,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: glowColor(kPrimary, 0.5), blurRadius: 24),
-                ],
-                border: Border.all(color: kPrimary, width: 2),
-              ),
-            ),
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: const Color(0xFF1A1A1A),
-              child: Icon(Icons.person_rounded, size: 48, color: kPrimary),
-            ),
-          ],
-        ),
+        const ExpencyLogoWidget(size: 96, showGlow: true),
         const SizedBox(height: 16),
         // Local Only badge
         Container(

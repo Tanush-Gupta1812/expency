@@ -30,7 +30,8 @@ export function SiteNav() {
       }`}
     >
       <nav className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3.5 lg:flex lg:justify-between">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
+        <Link to="/" className="flex min-w-0 items-center gap-2.5">
+          <img src="/favicon.svg" alt="Expency Logo" className="size-7 rounded-lg shadow-[0_0_12px_rgba(0,219,233,0.4)]" />
           <span className="font-display text-lg font-bold tracking-tight text-foreground">
             EXPENCY
           </span>
@@ -47,13 +48,12 @@ export function SiteNav() {
               {l.label}
             </a>
           ))}
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
+          <Link
+            to="/privacy"
             className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
           >
             Privacy Policy
-          </button>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
@@ -90,16 +90,13 @@ export function SiteNav() {
                 {l.label}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                setOpen(true);
-              }}
+            <Link
+              to="/privacy"
+              onClick={() => setMenu(false)}
               className="text-left font-mono text-xs uppercase tracking-widest text-muted-foreground"
             >
               Privacy Policy
-            </button>
+            </Link>
             <div className="pt-2">
               <CurrencySwitcher compact />
             </div>

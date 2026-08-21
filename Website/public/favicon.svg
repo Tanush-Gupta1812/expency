@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00DBE9" />
+      <stop offset="100%" stop-color="#00808A" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark Rounded Container -->
+  <rect width="64" height="64" rx="16" fill="#000000" />
+  <rect width="62" height="62" x="1" y="1" rx="15" fill="none" stroke="#00DBE9" stroke-width="1.5" stroke-opacity="0.3" />
+
+  <!-- Modern Geometric 'E' / Finance Pulse in Neon Cyan -->
+  <g filter="url(#glow)">
+    <!-- Top Bar -->
+    <path d="M18 18 H46 C47.1 18 48 18.9 48 20 C48 21.1 47.1 22 46 22 H24 V29 H40 C41.1 29 42 29.9 42 31 C42 32.1 41.1 33 40 33 H24 V42 H46 C47.1 42 48 42.9 48 44 C48 45.1 47.1 46 46 46 H18 C16.9 46 16 45.1 16 44 V20 C16 18.9 16.9 18 18 18 Z" fill="url(#neonCyan)" />
+    
+    <!-- Neon Dot Accent -->
+    <circle cx="46" cy="32" r="3" fill="#00FF00" />
+  </g>
+</svg>

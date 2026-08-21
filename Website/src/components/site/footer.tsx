@@ -6,7 +6,8 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-black/60 px-5 py-12">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="Expency Logo" className="size-6 rounded-md shadow-[0_0_10px_rgba(0,219,233,0.35)]" />
             <span className="font-display text-lg font-bold">EXPENCY</span>
             <span className="inline-block size-2 rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
           </div>

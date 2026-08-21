@@ -30,7 +30,7 @@ class ExpencyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Expency',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: buildAppTheme(),
       home: const _ThemeHost(child: MainShell()),
     );
   }

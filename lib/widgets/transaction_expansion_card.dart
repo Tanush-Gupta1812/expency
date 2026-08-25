@@ -78,6 +78,8 @@ class TransactionExpansionCard extends StatelessWidget {
                   children: [
                     Text(
                       transaction.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.spaceGrotesk(
                         color: kOnSurface,
                         fontSize: 16,
@@ -85,16 +87,18 @@ class TransactionExpansionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
                       children: [
                         ExpansionTag(text: transaction.category.label.toUpperCase(), color: transaction.category.color),
-                        const SizedBox(width: 8),
                         ExpansionTag(text: transaction.type.name.toUpperCase(), color: transaction.isIncome ? kIncome : kExpense),
                       ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '$amountSign$currencySymbol${transaction.amount.toStringAsFixed(2)}',
                 style: GoogleFonts.spaceGrotesk(
@@ -156,7 +160,7 @@ class ExpansionTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(100),
@@ -168,7 +172,7 @@ class ExpansionTag extends StatelessWidget {
           color: color,
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          letterSpacing: 1,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -186,23 +190,25 @@ class DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: GoogleFonts.spaceGrotesk(
-              color: kOnSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 1,
-            ),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            color: kOnSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1,
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.spaceGrotesk(
-            color: kOnSurface,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.spaceGrotesk(
+              color: kOnSurface,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

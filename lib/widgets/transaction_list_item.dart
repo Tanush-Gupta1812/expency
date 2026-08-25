@@ -51,6 +51,8 @@ class TransactionListItem extends StatelessWidget {
                     children: [
                       Text(
                         t.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.spaceGrotesk(
                           color: kOnSurface,
                           fontSize: 15,

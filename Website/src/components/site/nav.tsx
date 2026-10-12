@@ -17,7 +17,14 @@ export function SiteNav() {
   const [menu, setMenu] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    let prev = false;
+    const onScroll = () => {
+      const isScrolled = window.scrollY > 12;
+      if (isScrolled !== prev) {
+        prev = isScrolled;
+        setScrolled(isScrolled);
+      }
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
